@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Calendar, Globe, Clock, Shield, Sparkles } from 'lucide-react'
+import { Calendar, Globe, Clock, Shield, Sparkles, Settings } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import CreateMeetingModal from '@/components/create-meeting-modal'
 import { AdminDashboardStats } from '@/components/admin/dashboard-stats'
 import { QuickJoinCard } from '@/components/dashboard/quick-join-card'
