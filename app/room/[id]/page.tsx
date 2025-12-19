@@ -251,6 +251,42 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                 }}
             />
 
+            {/* Language Menu (Moved to Root) */}
+            <AnimatePresence>
+                {showLangMenu && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="fixed bottom-32 left-1/2 -translate-x-1/2 w-80 bg-card/90 backdrop-blur-2xl border border-border rounded-[2.5rem] shadow-3xl p-4 z-[70]"
+                    >
+                        <div className="text-[10px] font-black text-muted-foreground px-4 py-2 uppercase tracking-[0.3em] mb-2">
+                            Canais de Tradução
+                        </div>
+                        <div className="space-y-1">
+                            {AVAILABLE_LANGUAGES.map((lang) => (
+                                <button
+                                    key={lang.code}
+                                    onClick={() => handleLangChange(lang.code)}
+                                    className={cn(
+                                        "w-full flex items-center p-4 rounded-2xl transition-all active:scale-[0.98]",
+                                        selectedLang === lang.code
+                                            ? 'bg-[#06b6d4]/10 text-[#06b6d4] ring-1 ring-[#06b6d4]/30'
+                                            : 'hover:bg-accent/50 text-muted-foreground'
+                                    )}
+                                >
+                                    <span className="text-2xl mr-4">{lang.flag}</span>
+                                    <span className="font-bold text-sm tracking-tight">{lang.name}</span>
+                                    {selectedLang === lang.code && (
+                                        <div className="ml-auto w-2 h-2 rounded-full bg-[#06b6d4] shadow-[0_0_10px_#06b6d4]" />
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Bottom Control Bar */}
             <div className="h-24 md:h-28 bg-card/60 backdrop-blur-3xl border-t border-border flex items-center justify-start md:justify-center gap-4 md:gap-6 relative z-[50] px-4 md:px-10 overflow-x-auto no-scrollbar pb-safe">
                 <div className="flex items-center gap-3 shrink-0 mx-auto">
@@ -313,40 +349,6 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         </div>
                     </Button>
 
-                    <AnimatePresence>
-                        {showLangMenu && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                className="absolute bottom-24 left-1/2 -translate-x-1/2 w-80 bg-card/90 backdrop-blur-2xl border border-border rounded-[2.5rem] shadow-3xl p-4 z-[60]"
-                            >
-                                <div className="text-[10px] font-black text-muted-foreground px-4 py-2 uppercase tracking-[0.3em] mb-2">
-                                    Canais de Tradução
-                                </div>
-                                <div className="space-y-1">
-                                    {AVAILABLE_LANGUAGES.map((lang) => (
-                                        <button
-                                            key={lang.code}
-                                            onClick={() => handleLangChange(lang.code)}
-                                            className={cn(
-                                                "w-full flex items-center p-4 rounded-2xl transition-all active:scale-[0.98]",
-                                                selectedLang === lang.code
-                                                    ? 'bg-[#06b6d4]/10 text-[#06b6d4] ring-1 ring-[#06b6d4]/30'
-                                                    : 'hover:bg-accent/50 text-muted-foreground'
-                                            )}
-                                        >
-                                            <span className="text-2xl mr-4">{lang.flag}</span>
-                                            <span className="font-bold text-sm tracking-tight">{lang.name}</span>
-                                            {selectedLang === lang.code && (
-                                                <div className="ml-auto w-2 h-2 rounded-full bg-[#06b6d4] shadow-[0_0_10px_#06b6d4]" />
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
                 </div>
 
                 {selectedLang !== 'original' && (
