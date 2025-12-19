@@ -21,6 +21,11 @@ const stagger = {
 }
 
 export default function Home() {
+  // Debug logging for production deployment
+  if (typeof window !== 'undefined') {
+    console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-[#06b6d4]/30 transition-colors duration-500">
       {/* Ambient Background */}
