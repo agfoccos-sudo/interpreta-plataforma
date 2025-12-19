@@ -5,8 +5,16 @@ import { useState, use, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
     Mic, MicOff, Video, VideoOff, PhoneOff,
-    Globe, Users, MessageSquare, Monitor, X
+    Globe, Users, MessageSquare, Monitor, X, ChevronUp, Settings
 } from 'lucide-react'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuLabel,
+    DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu"
 import Link from 'next/link'
 
 // Imports updated
@@ -35,6 +43,15 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     const [currentRole, setCurrentRole] = useState<'participant' | 'interpreter'>(role === 'interpreter' ? 'interpreter' : 'participant')
     const [activeSidebar, setActiveSidebar] = useState<'chat' | 'participants' | null>(null)
     const [isSharing, setIsSharing] = useState(false)
+    const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([])
+    const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([])
+
+    useEffect(() => {
+        navigator.mediaDevices.enumerateDevices().then(devices => {
+            setAudioInputs(devices.filter(d => d.kind === 'audioinput'))
+            setVideoInputs(devices.filter(d => d.kind === 'videoinput'))
+        })
+    }, [])
 
     const {
         localStream,
@@ -46,7 +63,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         userCount,
         mediaError,
         channel,
-        updateMetadata
+        updateMetadata,
+        switchDevice
     } = useWebRTC(roomId, userId, currentRole)
 
     const { messages, sendMessage, unreadCount, markAsRead, setIsActive: setIsChatActive } = useChat(roomId, userId, currentRole)
@@ -111,28 +129,28 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         {userCount} Online
                     </div>
                 </div>
-                <div className="bg-red-500/90 px-3 py-1 rounded text-xs font-bold uppercase animate-pulse">
-                    AO VIVO
-                </div>
+                {/* Badge removed */}
             </div>
 
             {/* Main Layout (Flex Row) */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Video Grid Section */}
-                <div className="flex-1 p-6 flex items-center justify-center transition-all duration-300">
+                <div className="flex-1 p-4 flex items-center justify-center transition-all duration-300">
                     <motion.div
                         layout
-                        className={`grid gap-6 w-full max-w-7xl h-full max-h-[85vh] ${peers.length === 0 ? 'grid-cols-1' :
-                            peers.length === 1 ? 'md:grid-cols-2' :
-                                'md:grid-cols-2 lg:grid-cols-3'
+                        className={`grid gap-4 w-full max-w-[1400px] content-center justify-items-center ${peers.length === 0 ? 'grid-cols-1 max-w-3xl' :
+                            peers.length === 1 ? 'grid-cols-1 md:grid-cols-2 max-w-5xl' :
+                                peers.length <= 4 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-2' :
+                                    'grid-cols-2 md:grid-cols-3 lg:grid-cols-3'
                             }`}
+                        style={{ maxHeight: 'calc(100vh - 180px)' }}
                     >
                         {/* Self View */}
                         <motion.div
                             layout
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="aspect-video"
+                            className="aspect-video w-full relative rounded-2xl overflow-hidden shadow-2xl border border-white/5 bg-black/40"
                         >
                             <LocalVideo stream={localStream} role={currentRole} name="Você" />
                         </motion.div>
@@ -302,30 +320,74 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
             {/* Bottom Control Bar */}
             <div className="h-24 md:h-28 bg-card/60 backdrop-blur-3xl border-t border-border flex items-center justify-start md:justify-center gap-4 md:gap-6 relative z-[50] px-4 md:px-10 overflow-x-auto no-scrollbar pb-safe">
-                <div className="flex items-center gap-3 shrink-0 mx-auto">
-                    <Button
-                        variant={micOn ? "secondary" : "destructive"}
-                        size="icon"
-                        className={cn(
-                            "h-14 w-14 rounded-2xl shadow-xl transition-all active:scale-95 border-0",
-                            micOn ? "bg-accent/50 text-foreground hover:bg-accent" : "bg-red-500 text-white hover:bg-red-600 shadow-red-500/20"
-                        )}
-                        onClick={handleToggleMic}
-                    >
-                        {micOn ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
-                    </Button>
+                <div className="flex items-center gap-4 shrink-0 mx-auto">
+                    {/* Mic Control */}
+                    <div className="flex items-center gap-0.5 bg-background/50 backdrop-blur rounded-2xl p-1 border border-border/50 shadow-sm group hover:border-[#06b6d4]/50 transition-colors">
+                        <Button
+                            variant={micOn ? "ghost" : "destructive"}
+                            size="icon"
+                            className={cn(
+                                "h-12 w-12 rounded-xl rounded-r-none border-0 transition-all",
+                                micOn ? "bg-accent/20 text-foreground hover:bg-accent/40" : "bg-red-500 text-white shadow-red-500/20"
+                            )}
+                            onClick={handleToggleMic}
+                        >
+                            {micOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-12 w-6 rounded-xl rounded-l-none border-l border-white/5 hover:bg-accent/40">
+                                    <ChevronUp className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent side="top" align="center" className="w-64 mb-4 rounded-2xl bg-black/90 backdrop-blur-3xl border-white/10 p-2 shadow-2xl">
+                                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">Microfone</DropdownMenuLabel>
+                                {audioInputs.map((device, i) => (
+                                    <DropdownMenuItem
+                                        key={i}
+                                        onClick={() => switchDevice('audio', device.deviceId)}
+                                        className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5"
+                                    >
+                                        {device.label || `Microphone ${i + 1}`}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
 
-                    <Button
-                        variant={cameraOn ? "secondary" : "destructive"}
-                        size="icon"
-                        className={cn(
-                            "h-14 w-14 rounded-2xl shadow-xl transition-all active:scale-95 border-0",
-                            cameraOn ? "bg-accent/50 text-foreground hover:bg-accent" : "bg-red-500 text-white hover:bg-red-600 shadow-red-500/20"
-                        )}
-                        onClick={handleToggleCamera}
-                    >
-                        {cameraOn ? <Video className="h-6 w-6" /> : <VideoOff className="h-6 w-6" />}
-                    </Button>
+                    {/* Camera Control */}
+                    <div className="flex items-center gap-0.5 bg-background/50 backdrop-blur rounded-2xl p-1 border border-border/50 shadow-sm group hover:border-[#06b6d4]/50 transition-colors">
+                        <Button
+                            variant={cameraOn ? "ghost" : "destructive"}
+                            size="icon"
+                            className={cn(
+                                "h-12 w-12 rounded-xl rounded-r-none border-0 transition-all",
+                                cameraOn ? "bg-accent/20 text-foreground hover:bg-accent/40" : "bg-red-500 text-white shadow-red-500/20"
+                            )}
+                            onClick={handleToggleCamera}
+                        >
+                            {cameraOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-12 w-6 rounded-xl rounded-l-none border-l border-white/5 hover:bg-accent/40">
+                                    <ChevronUp className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent side="top" align="center" className="w-64 mb-4 rounded-2xl bg-black/90 backdrop-blur-3xl border-white/10 p-2 shadow-2xl">
+                                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">Câmera</DropdownMenuLabel>
+                                {videoInputs.map((device, i) => (
+                                    <DropdownMenuItem
+                                        key={i}
+                                        onClick={() => switchDevice('video', device.deviceId)}
+                                        className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5"
+                                    >
+                                        {device.label || `Camera ${i + 1}`}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
 
                     <Button
                         variant={isSharing ? "default" : "secondary"}

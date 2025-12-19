@@ -357,6 +357,40 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
         }
     }
 
+    const switchDevice = async (kind: 'audio' | 'video', deviceId: string) => {
+        if (!localStream) return
+
+        try {
+            const newStream = await navigator.mediaDevices.getUserMedia({
+                [kind]: { deviceId: { exact: deviceId } }
+            })
+            const newTrack = kind === 'audio' ? newStream.getAudioTracks()[0] : newStream.getVideoTracks()[0]
+            const oldTrack = kind === 'audio' ? localStream.getAudioTracks()[0] : localStream.getVideoTracks()[0]
+
+            if (oldTrack) {
+                oldTrack.stop()
+                localStream.removeTrack(oldTrack)
+            }
+            localStream.addTrack(newTrack)
+
+            // Update Peers
+            peersRef.current.forEach(({ peer }) => {
+                if (oldTrack) {
+                    peer.replaceTrack(oldTrack, newTrack, localStream)
+                } else {
+                    peer.addTrack(newTrack, localStream)
+                }
+            })
+
+            // Force re-render of local video
+            setLocalStream(new MediaStream(localStream.getTracks()))
+            addLog(`Switched ${kind} device to ${deviceId}`)
+        } catch (e) {
+            console.error(`Failed to switch ${kind} device`, e)
+            addLog(`Failed to switch device: ${e}`)
+        }
+    }
+
     return {
         localStream,
         peers: Array.from(peers.values()),
@@ -365,6 +399,7 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
         shareScreen,
         stopScreenShare,
         updateMetadata,
+        switchDevice,
         logs,
         userCount,
         mediaError,
