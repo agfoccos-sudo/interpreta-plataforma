@@ -138,10 +138,10 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                 <div className="flex-1 p-4 flex items-center justify-center transition-all duration-300">
                     <motion.div
                         layout
-                        className={`grid gap-4 w-full max-w-[1400px] content-center justify-items-center ${peers.length === 0 ? 'grid-cols-1 max-w-3xl' :
-                            peers.length === 1 ? 'grid-cols-1 md:grid-cols-2 max-w-5xl' :
-                                peers.length <= 4 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-2' :
-                                    'grid-cols-2 md:grid-cols-3 lg:grid-cols-3'
+                        className={`grid gap-4 w-full content-center justify-items-center transition-all ${peers.length === 0 ? 'grid-cols-1 max-w-xl' :
+                                peers.length === 1 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl' :
+                                    peers.length <= 4 ? 'grid-cols-2 max-w-5xl' :
+                                        'grid-cols-2 md:grid-cols-3 max-w-[1400px]'
                             }`}
                         style={{ maxHeight: 'calc(100vh - 180px)' }}
                     >
