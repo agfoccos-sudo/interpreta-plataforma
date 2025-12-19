@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { Calendar, Globe, Clock, Shield, Sparkles, Settings, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import CreateMeetingModal from '@/components/create-meeting-modal'
