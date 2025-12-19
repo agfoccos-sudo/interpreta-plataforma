@@ -19,6 +19,7 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
     const [userCount, setUserCount] = useState(0)
     const [mediaError, setMediaError] = useState<string | null>(null)
     const [iceServers, setIceServers] = useState<any[]>([{ urls: 'stun:stun.l.google.com:19302' }]) // Default fallback
+    const iceServersRef = useRef<any[]>([{ urls: 'stun:stun.l.google.com:19302' }]) // Ref for closure access
 
     // Helper to add logs
     const addLog = (msg: string) => {
@@ -48,6 +49,7 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
                     const data = await res.json()
                     if (data.iceServers) {
                         setIceServers(data.iceServers)
+                        iceServersRef.current = data.iceServers // Update ref
                         addLog(`Loaded ${data.iceServers.length} ICE servers`)
                     }
                 } catch (e) {
@@ -183,7 +185,7 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
             initiator,
             trickle: true,
             stream: stream || undefined,
-            config: { iceServers: iceServers }
+            config: { iceServers: iceServersRef.current }
         })
 
         peer.on('signal', (signal) => {
