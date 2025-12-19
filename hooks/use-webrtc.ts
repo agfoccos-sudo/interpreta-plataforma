@@ -9,6 +9,7 @@ interface PeerData {
     stream?: MediaStream
     userId: string
     role: string
+    language?: string // Added for interpretation
 }
 
 
@@ -116,6 +117,18 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
                 const payload = event.payload
                 handleSignal(payload, stream)
             })
+            .on('broadcast', { event: 'metadata-update' }, (event: { payload: { userId: string, metadata: any } }) => {
+                const { userId: remoteUserId, metadata } = event.payload
+                addLog(`Peer ${remoteUserId} updated metadata: ${JSON.stringify(metadata)}`)
+                setPeers(prev => {
+                    const newMap = new Map(prev)
+                    const existing = newMap.get(remoteUserId)
+                    if (existing) {
+                        newMap.set(remoteUserId, { ...existing, ...metadata })
+                    }
+                    return newMap
+                })
+            })
             .on('broadcast', { event: 'role-update' }, (event: { payload: { userId: string, role: string } }) => {
                 const { userId: remoteUserId, role: newRole } = event.payload
                 addLog(`Peer ${remoteUserId} updated role to ${newRole}`)
@@ -143,9 +156,10 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
                         const shouldInitiate = userId > remoteUserId
                         const remoteState = (state[remoteUserId] as unknown[])[0] as Record<string, unknown>
                         const remoteRole = (remoteState?.role as string) || 'participant'
+                        const remoteLang = (remoteState?.language as string) || 'floor'
 
                         addLog(`Found ${remoteUserId}. Initiating? ${shouldInitiate}`)
-                        createPeer(remoteUserId, userId, shouldInitiate, stream, remoteRole)
+                        createPeer(remoteUserId, userId, shouldInitiate, stream, remoteRole, remoteLang)
                     }
                 })
             })
@@ -173,7 +187,7 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
         }
     }, [userRole])
 
-    const createPeer = (targetUserId: string, initiatorId: string, initiator: boolean, stream: MediaStream | null, targetRole: string) => {
+    const createPeer = (targetUserId: string, initiatorId: string, initiator: boolean, stream: MediaStream | null, targetRole: string, targetLanguage: string = 'floor') => {
         // Double check ref to be safe
         if (peersRef.current.has(targetUserId)) {
             return peersRef.current.get(targetUserId)?.peer
@@ -192,7 +206,7 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
             channelRef.current?.send({
                 type: 'broadcast',
                 event: 'signal',
-                payload: { target: targetUserId, sender: userId, signal, role: userRole }
+                payload: { target: targetUserId, sender: userId, signal, role: userRole, language: 'floor' } // Initial handshake
             })
         })
 
@@ -206,7 +220,7 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
                     newMap.set(targetUserId, { ...existing, stream: remoteStream })
                 } else {
                     // Should not happen if logic is correct, but safe fallback
-                    newMap.set(targetUserId, { peer, stream: remoteStream, userId: targetUserId, role: targetRole })
+                    newMap.set(targetUserId, { peer, stream: remoteStream, userId: targetUserId, role: targetRole, language: targetLanguage })
                 }
                 return newMap
             })
@@ -221,7 +235,7 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
             removePeer(targetUserId)
         })
 
-        const peerData = { peer, userId: targetUserId, role: targetRole }
+        const peerData = { peer, userId: targetUserId, role: targetRole, language: targetLanguage }
         peersRef.current.set(targetUserId, peerData)
         setPeers(new Map(peersRef.current))
 
@@ -238,7 +252,7 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
             existingPeer.peer.signal(payload.signal as SimplePeer.SignalData)
         } else {
             addLog(`Received signal from new peer ${senderId}`)
-            const peer = createPeer(senderId, userId, false, stream, (payload.role as string) || 'participant')
+            const peer = createPeer(senderId, userId, false, stream, (payload.role as string) || 'participant', (payload.language as string) || 'floor')
             peer?.signal(payload.signal as SimplePeer.SignalData)
         }
     }
@@ -344,6 +358,18 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
         }
     }
 
+    const updateMetadata = (metadata: { language?: string }) => {
+        if (channelRef.current) {
+            addLog(`Updating my metadata: ${JSON.stringify(metadata)}`)
+            channelRef.current.track({ userId, role: userRole, ...metadata })
+            channelRef.current.send({
+                type: 'broadcast',
+                event: 'metadata-update',
+                payload: { userId, metadata }
+            })
+        }
+    }
+
     return {
         localStream,
         peers: Array.from(peers.values()),
@@ -351,6 +377,7 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
         toggleCamera,
         shareScreen,
         stopScreenShare,
+        updateMetadata,
         logs,
         userCount,
         mediaError,

@@ -14,6 +14,7 @@ import { useWebRTC } from '@/hooks/use-webrtc'
 import { RemoteVideo, LocalVideo } from '@/components/webrtc/video-player'
 import { ChatPanel } from '@/components/room/chat-panel'
 import { ParticipantList } from '@/components/room/participant-list'
+import { InterpreterControls } from '@/components/room/interpreter-controls'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -28,6 +29,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     const [cameraOn, setCameraOn] = useState(true)
     const [selectedLang, setSelectedLang] = useState('original')
     const [volumeBalance, setVolumeBalance] = useState(20)
+    const [myBroadcastLang, setMyBroadcastLang] = useState('floor') // For interpreters
     const [showLangMenu, setShowLangMenu] = useState(false)
     const [currentRole, setCurrentRole] = useState<'participant' | 'interpreter'>(role === 'interpreter' ? 'interpreter' : 'participant')
     const [activeSidebar, setActiveSidebar] = useState<'chat' | 'participants' | null>(null)
@@ -42,7 +44,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         stopScreenShare,
         userCount,
         mediaError,
-        channel
+        channel,
+        updateMetadata
     } = useWebRTC(roomId, userId, currentRole)
 
     const handleToggleMic = () => {
@@ -119,16 +122,44 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             className="aspect-video"
                         >
                             <LocalVideo stream={localStream} role={currentRole} name="Você" />
+                            <InterpreterControls
+                                role={currentRole}
+                                currentLanguage={myBroadcastLang}
+                                onLanguageChange={(lang) => {
+                                    setMyBroadcastLang(lang)
+                                    updateMetadata({ language: lang })
+                                }}
+                            />
                         </motion.div>
 
                         {/* Remote Peers */}
                         <AnimatePresence mode="popLayout">
                             {peers.map((peer) => {
                                 let vol = 1.0
-                                if (peer.role === 'interpreter') {
-                                    vol = volumeBalance / 100
+                                const speakerLang = (peer as any).language || 'floor'
+
+                                if (selectedLang === 'original') {
+                                    // Original Mode: Hear Floor @ 100%, Interpreters @ 0%
+                                    if (speakerLang === 'floor' || speakerLang === 'original') {
+                                        vol = 1.0
+                                    } else {
+                                        vol = 0.0
+                                    }
                                 } else {
-                                    vol = (100 - volumeBalance) / 100
+                                    // Translation Mode (e.g., selected 'pt')
+                                    if (speakerLang === selectedLang) {
+                                        // The interpreter for my language -> 100%
+                                        vol = 1.0
+                                    } else if (speakerLang === 'floor' || speakerLang === 'original') {
+                                        // The floor speaker -> 20% (Background)
+                                        // Invert balance logic: 20 on slider = 20% floor volume
+                                        // Slider 0 = 0% Floor (Full Interpreter), 100 = 100% Floor (No Interpreter distinction)
+                                        // Let's stick to the previous slider logic: 20 means "Focus on Interpreter", so floor is low.
+                                        vol = (100 - volumeBalance) / 100
+                                    } else {
+                                        // Other interpreters -> 0%
+                                        vol = 0.0
+                                    }
                                 }
 
                                 return (
@@ -350,10 +381,18 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             ? 'bg-purple-600 hover:bg-purple-700 border-purple-500 shadow-[0_0_30px_rgba(147,51,234,0.4)] text-white'
                             : 'border-border bg-accent/20 text-muted-foreground hover:text-foreground hover:bg-accent/40'
                     )}
-                    onClick={() => setCurrentRole(prev => prev === 'participant' ? 'interpreter' : 'participant')}
+                    onClick={() => {
+                        const newRole = currentRole === 'participant' ? 'interpreter' : 'participant'
+                        setCurrentRole(newRole)
+                        // Reset language when switching roles
+                        if (newRole === 'participant') {
+                            setMyBroadcastLang('floor')
+                            updateMetadata({ language: 'floor' })
+                        }
+                    }}
                 >
                     <Mic className="h-5 w-5 mr-3" />
-                    {currentRole === 'interpreter' ? 'CONSOLA ON' : 'INTERPRETAR'}
+                    {currentRole === 'interpreter' ? 'MODE: INTÉRPRETE' : 'VIRAR INTÉRPRETE'}
                 </Button>
 
                 <div className="flex bg-accent/20 rounded-2xl p-1.5 border border-border">
