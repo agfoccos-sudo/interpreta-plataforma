@@ -29,16 +29,8 @@ export default async function DashboardPage() {
     const role = profile?.role || 'user'
     const languages = profile?.limits?.languages || []
 
-    // If Admin, show "Command Center"
-    if (role === 'admin') {
-        return (
-            <div className="min-h-screen bg-background text-foreground">
-                <main className="container mx-auto px-4 py-8">
-                    <AdminDashboardStats />
-                </main>
-            </div>
-        )
-    }
+    // Admin logic removed - Admins now have a dedicated /admin route and can usage this dashboard as a regular user
+
 
     // Fetch meetings
     const { data: meetings } = await supabase

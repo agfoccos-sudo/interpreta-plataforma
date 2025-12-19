@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart3, Download, Languages, Users, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+import { ExportButton } from '@/components/admin/export-button'
+
 export default async function AdminReportsPage() {
     const supabase = await createClient()
 
@@ -30,10 +32,7 @@ export default async function AdminReportsPage() {
                     </h1>
                     <p className="text-gray-400 mt-2">Insights detalhados sobre o uso da plataforma e adoção de idiomas.</p>
                 </div>
-                <Button variant="outline" className="border-white/10 text-white hover:bg-white/5">
-                    <Download className="h-4 w-4 mr-2" />
-                    Exportar PDF/CSV
-                </Button>
+                <ExportButton />
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

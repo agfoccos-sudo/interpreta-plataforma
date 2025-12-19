@@ -110,13 +110,7 @@ export function UserActionsClient({ profile }: { profile: Profile }): React.Reac
 
                     <DropdownMenuLabel>Alterar Cargo</DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => updateUserRole(profile.id, 'participant')}>
-                        Tornar Participante
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => updateUserRole(profile.id, 'host')}>
-                        Tornar Host
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => updateUserRole(profile.id, 'interpreter')}>
-                        Tornar Intérprete
+                        Tornar Usuário Padrão
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => updateUserRole(profile.id, 'admin')} className="text-orange-500">
                         Tornar Admin

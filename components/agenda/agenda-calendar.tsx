@@ -44,17 +44,25 @@ export function AgendaCalendar({ meetings, userId }: AgendaCalendarProps) {
     // Navigation handlers
     const nextPeriod = () => {
         if (viewMode === 'month') {
-            setCurrentDate(addMonths(currentDate, 1))
+            const nextMonth = addMonths(currentDate, 1)
+            setCurrentDate(nextMonth)
+            setSelectedDate(startOfMonth(nextMonth)) // Auto-select 1st of next month
         } else {
-            setCurrentDate(addDays(currentDate, 7))
+            const nextWeek = addDays(currentDate, 7)
+            setCurrentDate(nextWeek)
+            setSelectedDate(nextWeek)
         }
     }
 
     const prevPeriod = () => {
         if (viewMode === 'month') {
-            setCurrentDate(subMonths(currentDate, 1))
+            const prevMonth = subMonths(currentDate, 1)
+            setCurrentDate(prevMonth)
+            setSelectedDate(startOfMonth(prevMonth))
         } else {
-            setCurrentDate(addDays(currentDate, -7))
+            const prevWeek = addDays(currentDate, -7)
+            setCurrentDate(prevWeek)
+            setSelectedDate(prevWeek)
         }
     }
 
@@ -94,8 +102,8 @@ export function AgendaCalendar({ meetings, userId }: AgendaCalendarProps) {
                             <Button variant="ghost" size="icon" onClick={prevPeriod} className="h-8 w-8 hover:bg-accent">
                                 <ChevronLeft className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={goToToday} className="h-8 text-[10px] font-black uppercase px-3 hover:bg-accent text-muted-foreground">
-                                Hoje
+                            <Button variant="ghost" size="sm" onClick={goToToday} className="h-8 text-[10px] font-black uppercase px-3 hover:bg-accent text-[#06b6d4]">
+                                Ir para Hoje
                             </Button>
                             <Button variant="ghost" size="icon" onClick={nextPeriod} className="h-8 w-8 hover:bg-accent">
                                 <ChevronRight className="h-4 w-4" />

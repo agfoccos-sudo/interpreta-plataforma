@@ -77,11 +77,9 @@ export default async function AdminUsersPage({
                                 <TableCell>
                                     <Badge variant="outline" className={`
                                         ${profile.role === 'admin' ? 'border-orange-500 text-orange-500 bg-orange-500/5' :
-                                            profile.role === 'interpreter' ? 'border-blue-500 text-blue-500 bg-blue-500/5' :
-                                                profile.role === 'host' ? 'border-green-500 text-green-500 bg-green-500/5' :
-                                                    'border-gray-500 text-gray-500'}
+                                            'border-blue-500 text-blue-500 bg-blue-500/5'}
                                     `}>
-                                        {profile.role.toUpperCase()}
+                                        {profile.role === 'admin' ? 'ADMIN' : 'USUÁRIO'}
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
