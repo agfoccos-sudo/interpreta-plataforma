@@ -143,12 +143,20 @@ export default async function DashboardPage() {
                                     <div className="hidden md:block col-span-3 text-sm font-mono text-slate-500">
                                         {new Date(meeting.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
-                                    <div className="col-span-6 md:col-span-2 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-slate-400 hover:text-blue-500">
-                                            <CreateMeetingModal userId={user.id} />
-                                            {/* Note: Edit button logic would go here ideally */}
-                                            <Sparkles className="h-4 w-4" />
-                                        </Button>
+                                    <div className="col-span-6 md:col-span-2 text-right flex items-center justify-end gap-2">
+                                        <ShareMeetingDialog
+                                            roomId={meeting.id}
+                                            trigger={
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-indigo-400 hover:text-indigo-300 hover:bg-white/10">
+                                                    <Share2 className="h-4 w-4" />
+                                                </Button>
+                                            }
+                                        />
+                                        <Link href={`/room/${meeting.id}`}>
+                                            <Button size="sm" className="bg-[#06b6d4] text-black hover:bg-[#0891b2] rounded-lg font-bold">
+                                                Entrar
+                                            </Button>
+                                        </Link>
                                     </div>
                                 </div>
                             ))
