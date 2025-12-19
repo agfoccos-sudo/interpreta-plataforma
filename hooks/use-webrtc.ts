@@ -9,11 +9,19 @@ interface PeerData {
     stream?: MediaStream
     userId: string
     role: string
-    language?: string // Added for interpretation
+    language?: string
+    micOn?: boolean
+    cameraOn?: boolean
+    isSpeaking?: boolean
 }
 
 
-export function useWebRTC(roomId: string, userId: string, userRole: string = 'participant') {
+export function useWebRTC(
+    roomId: string,
+    userId: string,
+    userRole: string = 'participant',
+    initialConfig: { micOn?: boolean, cameraOn?: boolean, audioDeviceId?: string, videoDeviceId?: string } = {}
+) {
     const [localStream, setLocalStream] = useState<MediaStream | null>(null)
     const [peers, setPeers] = useState<Map<string, PeerData>>(new Map())
     const [logs, setLogs] = useState<string[]>([])
@@ -58,11 +66,13 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
                     console.error("Failed to load ICE servers, using default", e)
                 }
 
-                addLog(`Initializing media...`)
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: true
-                })
+                const constraints = {
+                    audio: initialConfig.micOn !== false ? (initialConfig.audioDeviceId ? { deviceId: { exact: initialConfig.audioDeviceId } } : true) : false,
+                    video: initialConfig.cameraOn !== false ? (initialConfig.videoDeviceId ? { deviceId: { exact: initialConfig.videoDeviceId } } : true) : false
+                }
+
+                addLog(`Initializing media with constraints: ${JSON.stringify(constraints)}`)
+                const stream = await navigator.mediaDevices.getUserMedia(constraints)
 
                 addLog(`Media acquired: ${stream.getAudioTracks().length} audio tracks, ${stream.getVideoTracks().length} video tracks`)
 
@@ -133,6 +143,18 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
                     return newMap
                 })
             })
+            .on('broadcast', { event: 'media-toggle' }, (event: { payload: { userId: string, kind: 'mic' | 'camera', enabled: boolean } }) => {
+                const { userId: remoteUserId, kind, enabled } = event.payload
+                setPeers(prev => {
+                    const newMap = new Map(prev)
+                    const existing = newMap.get(remoteUserId)
+                    if (existing) {
+                        const update = kind === 'mic' ? { micOn: enabled } : { cameraOn: enabled }
+                        newMap.set(remoteUserId, { ...existing, ...update })
+                    }
+                    return newMap
+                })
+            })
             .on('presence', { event: 'sync' }, () => {
                 const state = newChannel.presenceState()
                 const users = Object.keys(state)
@@ -147,16 +169,33 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
                         const remoteState = (state[remoteUserId] as any[])?.[0] || {}
                         const remoteRole = remoteState.role || 'participant'
                         const remoteLang = remoteState.language || 'floor'
+                        const remoteMic = remoteState.micOn !== undefined ? remoteState.micOn : true
+                        const remoteCam = remoteState.cameraOn !== undefined ? remoteState.cameraOn : true
 
                         addLog(`Found ${remoteUserId}. Initiating? ${shouldInitiate}`)
-                        createPeer(remoteUserId, userId, shouldInitiate, stream, remoteRole, remoteLang)
+                        createPeer(
+                            remoteUserId,
+                            userId,
+                            shouldInitiate,
+                            stream,
+                            remoteRole,
+                            remoteLang,
+                            remoteMic,
+                            remoteCam
+                        )
                     }
                 })
             })
             .subscribe(async (status: string) => {
                 addLog(`Channel status: ${status}`)
                 if (status === 'SUBSCRIBED') {
-                    await newChannel.track({ userId, role: userRole })
+                    // Initial track with default media states
+                    await newChannel.track({
+                        userId,
+                        role: userRole,
+                        micOn: true,
+                        cameraOn: true
+                    })
                 }
             })
     }
@@ -165,7 +204,7 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
     useEffect(() => {
         if (channelRef.current) {
             addLog(`Updating role to ${userRole}...`)
-            channelRef.current.track({ userId, role: userRole })
+            channelRef.current.track({ userId, role: userRole, micOn: true, cameraOn: true })
             channelRef.current.send({
                 type: 'broadcast',
                 event: 'role-update',
@@ -174,7 +213,7 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
         }
     }, [userRole])
 
-    const createPeer = (targetUserId: string, initiatorId: string, initiator: boolean, stream: MediaStream | null, targetRole: string, targetLanguage: string = 'floor') => {
+    const createPeer = (targetUserId: string, initiatorId: string, initiator: boolean, stream: MediaStream | null, targetRole: string, targetLanguage: string = 'floor', remoteMic: boolean = true, remoteCam: boolean = true) => {
         // Double check ref to be safe
         if (peersRef.current.has(targetUserId)) {
             return peersRef.current.get(targetUserId)?.peer
@@ -207,7 +246,15 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
                     newMap.set(targetUserId, { ...existing, stream: remoteStream })
                 } else {
                     // Should not happen if logic is correct, but safe fallback
-                    newMap.set(targetUserId, { peer, stream: remoteStream, userId: targetUserId, role: targetRole, language: targetLanguage })
+                    newMap.set(targetUserId, {
+                        peer,
+                        stream: remoteStream,
+                        userId: targetUserId,
+                        role: targetRole,
+                        language: targetLanguage,
+                        micOn: remoteMic,
+                        cameraOn: remoteCam
+                    })
                 }
                 return newMap
             })
@@ -222,7 +269,14 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
             removePeer(targetUserId)
         })
 
-        const peerData = { peer, userId: targetUserId, role: targetRole, language: targetLanguage }
+        const peerData = {
+            peer,
+            userId: targetUserId,
+            role: targetRole,
+            language: targetLanguage,
+            micOn: remoteMic,
+            cameraOn: remoteCam
+        }
         peersRef.current.set(targetUserId, peerData)
         setPeers(new Map(peersRef.current))
 
@@ -239,7 +293,16 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
             existingPeer.peer.signal(payload.signal as SimplePeer.SignalData)
         } else {
             addLog(`Received signal from new peer ${senderId}`)
-            const peer = createPeer(senderId, userId, false, stream, (payload.role as string) || 'participant', (payload.language as string) || 'floor')
+            const peer = createPeer(
+                senderId,
+                userId,
+                false,
+                stream,
+                (payload.role as string) || 'participant',
+                (payload.language as string) || 'floor',
+                true, // Default mic state for fallback
+                true  // Default camera state for fallback
+            )
             peer?.signal(payload.signal as SimplePeer.SignalData)
         }
     }
@@ -260,6 +323,12 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
                 t.enabled = enabled
                 addLog(`Track ${t.id} enabled: ${t.enabled}`)
             })
+            // Broadcast state
+            channelRef.current?.send({
+                type: 'broadcast',
+                event: 'media-toggle',
+                payload: { userId, kind: 'mic', enabled }
+            })
         } else {
             addLog("Cannot toggle mic: No local stream.")
         }
@@ -267,6 +336,12 @@ export function useWebRTC(roomId: string, userId: string, userRole: string = 'pa
 
     const toggleCamera = (enabled: boolean) => {
         localStream?.getVideoTracks().forEach(t => t.enabled = enabled)
+        // Broadcast state
+        channelRef.current?.send({
+            type: 'broadcast',
+            event: 'media-toggle',
+            payload: { userId, kind: 'camera', enabled }
+        })
     }
 
     const shareScreen = async (onEnd?: () => void) => {

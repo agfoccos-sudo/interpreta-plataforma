@@ -79,7 +79,7 @@ function AudioMeter({ stream, onSpeakingChange }: { stream?: MediaStream | null,
     )
 }
 
-export function RemoteVideo({ stream, name, role, volume = 1.0 }: VideoProps) {
+export function RemoteVideo({ stream, name, role, volume = 1.0, micOff, onSpeakingChange }: VideoProps & { micOff?: boolean, onSpeakingChange?: (isSpeaking: boolean) => void }) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isSpeaking, setIsSpeaking] = useState(false)
 
@@ -106,8 +106,12 @@ export function RemoteVideo({ stream, name, role, volume = 1.0 }: VideoProps) {
 
     return (
         <div className={cn(
-            "bg-card rounded-[2.5rem] overflow-hidden relative border-2 transition-all duration-500 group w-full h-full shadow-2xl",
-            isSpeaking ? "border-[#06b6d4] shadow-[0_0_30px_rgba(6,182,212,0.2)]" : "border-border"
+            "bg-card rounded-[2.5rem] overflow-hidden relative border-4 transition-all duration-500 group w-full h-full shadow-2xl",
+            isSpeaking
+                ? role === 'interpreter'
+                    ? "border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.4)] scale-[1.02] z-10"
+                    : "border-[#06b6d4] shadow-[0_0_40px_rgba(6,182,212,0.4)] scale-[1.02] z-10"
+                : "border-border/30"
         )}>
             {stream ? (
                 <>
@@ -122,8 +126,9 @@ export function RemoteVideo({ stream, name, role, volume = 1.0 }: VideoProps) {
                     <div className="absolute top-4 left-4 flex items-center gap-2">
                         <div className="bg-background/40 backdrop-blur-xl border border-border/50 px-3 py-1.5 rounded-2xl flex items-center gap-2 shadow-sm">
                             <div className={cn(
-                                "w-2 h-2 rounded-full animate-pulse",
-                                role === 'interpreter' ? "bg-purple-500" : "bg-[#06b6d4]"
+                                "w-2 h-2 rounded-full",
+                                role === 'interpreter' ? "bg-purple-500" : "bg-[#06b6d4]",
+                                isSpeaking && "animate-ping"
                             )} />
                             <span className="text-[10px] font-black uppercase tracking-widest text-foreground">
                                 {role === 'interpreter' ? 'Intérprete' : 'Participante'}
@@ -131,20 +136,29 @@ export function RemoteVideo({ stream, name, role, volume = 1.0 }: VideoProps) {
                         </div>
                     </div>
 
-                    {/* Bottom Info Bar */}
-                    <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                        <div className="bg-background/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-border flex items-center gap-3">
-                            <div className="bg-accent/50 p-1.5 rounded-lg">
-                                <User className="h-3 w-3 text-muted-foreground" />
+                    {/* Left Bottom Name & Status */}
+                    <div className="absolute bottom-4 left-4 flex items-center gap-2">
+                        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 flex items-center gap-3">
+                            <div className="bg-white/10 p-1.5 rounded-lg">
+                                <User className="h-3 w-3 text-white" />
                             </div>
-                            <span className="text-xs font-bold text-foreground">
+                            <span className="text-xs font-bold text-white tracking-tight">
                                 {name.split('-')[1] || name}
                             </span>
+                            {micOff && (
+                                <div className="bg-red-500/80 p-1 rounded-md ml-1">
+                                    <MicOff className="h-3 w-3 text-white" />
+                                </div>
+                            )}
                         </div>
+                    </div>
 
-                        <div className="bg-background/60 backdrop-blur-md p-2 rounded-2xl border border-border">
-                            <AudioMeter stream={stream} onSpeakingChange={setIsSpeaking} />
-                        </div>
+                    {/* Hidden Audio Meter for Level Detection Only */}
+                    <div className="hidden">
+                        <AudioMeter stream={stream} onSpeakingChange={(s) => {
+                            setIsSpeaking(s)
+                            onSpeakingChange?.(s)
+                        }} />
                     </div>
                 </>
             ) : (
@@ -165,7 +179,7 @@ export function RemoteVideo({ stream, name, role, volume = 1.0 }: VideoProps) {
     )
 }
 
-export function LocalVideo({ stream, role }: VideoProps) {
+export function LocalVideo({ stream, role, micOff, name = "Você", onSpeakingChange }: VideoProps & { micOff?: boolean, onSpeakingChange?: (isSpeaking: boolean) => void }) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isSpeaking, setIsSpeaking] = useState(false)
 
@@ -177,8 +191,12 @@ export function LocalVideo({ stream, role }: VideoProps) {
 
     return (
         <div className={cn(
-            "bg-card rounded-[2.5rem] overflow-hidden relative border-2 shadow-2xl group w-full h-full transition-all duration-500 hover:border-[#06b6d4]/50",
-            isSpeaking ? "border-[#06b6d4] shadow-[0_0_30px_rgba(6,182,212,0.2)]" : "border-border"
+            "bg-card rounded-[2.5rem] overflow-hidden relative border-4 shadow-2xl group w-full h-full transition-all duration-500",
+            isSpeaking
+                ? role === 'interpreter'
+                    ? "border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.4)] scale-[1.02] z-10"
+                    : "border-[#06b6d4] shadow-[0_0_40px_rgba(6,182,212,0.4)] scale-[1.02] z-10"
+                : "border-border/30 hover:border-[#06b6d4]/50"
         )}>
             {stream ? (
                 <>
@@ -193,19 +211,29 @@ export function LocalVideo({ stream, role }: VideoProps) {
                     {/* Top Identity Badge */}
                     <div className="absolute top-4 left-4">
                         <div className="bg-[#06b6d4] px-4 py-1.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-[#06b6d4]/20">
-                            <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-white">Você (Sinal Local)</span>
+                            <div className={cn("w-1.5 h-1.5 bg-white rounded-full", isSpeaking && "animate-ping")} />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white">{name} (Local)</span>
                         </div>
                     </div>
 
                     {/* Bottom Info Bar */}
-                    <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                        <div className="bg-background/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-border flex items-center gap-2">
-                            <span className="text-xs font-bold text-foreground">Sua Câmera</span>
+                    <div className="absolute bottom-4 left-4 flex items-center gap-2">
+                        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 flex items-center gap-2">
+                            <span className="text-xs font-bold text-white tracking-tight">Sua Câmera</span>
+                            {micOff && (
+                                <div className="bg-red-500/80 p-1 rounded-md ml-1">
+                                    <MicOff className="h-3 w-3 text-white" />
+                                </div>
+                            )}
                         </div>
-                        <div className="bg-background/60 backdrop-blur-md p-2 rounded-2xl border border-border">
-                            <AudioMeter stream={stream} onSpeakingChange={setIsSpeaking} />
-                        </div>
+                    </div>
+
+                    {/* Hidden Audio Meter for Level Detection */}
+                    <div className="hidden">
+                        <AudioMeter stream={stream} onSpeakingChange={(s) => {
+                            setIsSpeaking(s)
+                            onSpeakingChange?.(s)
+                        }} />
                     </div>
                 </>
             ) : (

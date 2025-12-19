@@ -22,6 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { MoreHorizontal, Settings2, Languages } from 'lucide-react'
 import React, { useState } from 'react'
 import { updateUserRole, updateUserStatus, updateUserLimits, updateProfileLanguages } from '../actions'
+import { LANGUAGES } from '@/lib/languages'
 
 interface Profile {
     id: string;
@@ -134,36 +135,25 @@ export function UserActionsClient({ profile }: { profile: Profile }): React.Reac
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <p className="text-sm text-gray-400">Selecione os idiomas que este usuário está habilitado a interpretar.</p>
-                        <div className="flex flex-col gap-3">
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id="pt"
-                                    checked={selectedLangs.includes('pt')}
-                                    onCheckedChange={() => handleLangToggle('pt')}
-                                />
-                                <label htmlFor="pt" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                    Português (BR)
-                                </label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id="en"
-                                    checked={selectedLangs.includes('en')}
-                                    onCheckedChange={() => handleLangToggle('en')}
-                                />
-                                <label htmlFor="en" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                    Inglês (EN)
-                                </label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id="es"
-                                    checked={selectedLangs.includes('es')}
-                                    onCheckedChange={() => handleLangToggle('es')}
-                                />
-                                <label htmlFor="es" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                    Espanhol (ES)
-                                </label>
+                        <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="grid grid-cols-1 gap-2">
+                                {LANGUAGES.map((lang) => (
+                                    <div key={lang.code} className="flex items-center space-x-3 p-2 rounded-xl hover:bg-white/5 transition-colors">
+                                        <Checkbox
+                                            id={`lang-${lang.code}`}
+                                            checked={selectedLangs.includes(lang.code)}
+                                            onCheckedChange={() => handleLangToggle(lang.code)}
+                                            className="border-white/30 data-[state=checked]:bg-[#06b6d4] data-[state=checked]:border-[#06b6d4]"
+                                        />
+                                        <label
+                                            htmlFor={`lang-${lang.code}`}
+                                            className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2 w-full"
+                                        >
+                                            <span className="text-lg">{lang.flag}</span>
+                                            {lang.name}
+                                        </label>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>

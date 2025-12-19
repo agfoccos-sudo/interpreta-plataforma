@@ -29,13 +29,19 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/logo'
 import { ShareMeetingDialog } from '@/components/share-meeting-dialog'
+import { LANGUAGES } from '@/lib/languages' // NEW IMPORT
+
+import { VideoGrid } from '@/components/room/video-grid'
+import { LayoutGrid, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { PreCallLobby } from '@/components/room/pre-call-lobby'
+import { SettingsDialog } from '@/components/room/settings-dialog'
 
 export default function RoomPage({ params, searchParams }: { params: Promise<{ id: string }>, searchParams: Promise<{ role?: string }> }) {
+    // ... preceding state remains ...
     const { id: roomId } = use(params)
     const { role } = use(searchParams)
 
     // User Identity Logic
-    // User Identity Logic - STRICT MODE
     const [userId, setUserId] = useState('')
     const [currentRole, setCurrentRole] = useState<'participant' | 'interpreter'>('participant')
     const [isLoaded, setIsLoaded] = useState(false)
@@ -47,7 +53,6 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
             if (user) {
                 setUserId(user.id)
-                // Fetch strict role
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('role')
@@ -60,16 +65,14 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                     setCurrentRole('participant')
                 }
             } else {
-                // Anonymous Guest fallback
                 setUserId('guest-' + Math.random().toString(36).substr(2, 9))
-                setCurrentRole('participant') // Guests are ALWAYS participants
+                setCurrentRole('participant')
             }
             setIsLoaded(true)
         }
         initUser()
     }, [])
 
-    // Restored State
     const [micOn, setMicOn] = useState(true)
     const [cameraOn, setCameraOn] = useState(true)
     const [selectedLang, setSelectedLang] = useState('original')
@@ -81,43 +84,19 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([])
     const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([])
 
-    // UI Visibility Logic
-    const [showUI, setShowUI] = useState(true)
-    const [lastInteraction, setLastInteraction] = useState(Date.now())
+    // Layout and Join States
+    const [isJoined, setIsJoined] = useState(false)
+    const [lobbyConfig, setLobbyConfig] = useState<{
+        micOn: boolean,
+        cameraOn: boolean,
+        audioDeviceId: string,
+        videoDeviceId: string
+    } | null>(null)
 
-    useEffect(() => {
-        const handleActivity = () => {
-            setShowUI(true)
-            setLastInteraction(Date.now())
-        }
-
-        window.addEventListener('mousemove', handleActivity)
-        window.addEventListener('mousedown', handleActivity)
-        window.addEventListener('keydown', handleActivity)
-        window.addEventListener('touchstart', handleActivity)
-
-        // Hide UI after 3s of inactivity, ONLY if no sidebar is open
-        const interval = setInterval(() => {
-            if (Date.now() - lastInteraction > 3000 && !activeSidebar) {
-                setShowUI(false)
-            }
-        }, 1000)
-
-        return () => {
-            window.removeEventListener('mousemove', handleActivity)
-            window.removeEventListener('mousedown', handleActivity)
-            window.removeEventListener('keydown', handleActivity)
-            window.removeEventListener('touchstart', handleActivity)
-            clearInterval(interval)
-        }
-    }, [activeSidebar, lastInteraction])
-
-    useEffect(() => {
-        navigator.mediaDevices.enumerateDevices().then(devices => {
-            setAudioInputs(devices.filter(d => d.kind === 'audioinput'))
-            setVideoInputs(devices.filter(d => d.kind === 'videoinput'))
-        })
-    }, [])
+    const [viewMode, setViewMode] = useState<'gallery' | 'speaker'>('gallery')
+    const [activeSpeakerId, setActiveSpeakerId] = useState<string | null>(null)
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 49
 
     const {
         localStream,
@@ -130,12 +109,57 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         mediaError,
         channel,
         updateMetadata,
-        switchDevice
-    } = useWebRTC(roomId, userId, currentRole)
+        switchDevice: switchDeviceWebRTC
+    } = useWebRTC(roomId, userId, currentRole, lobbyConfig || {})
+
+    // Populate Device Lists
+    useEffect(() => {
+        if (isJoined) {
+            navigator.mediaDevices.enumerateDevices().then(devices => {
+                setAudioInputs(devices.filter(d => d.kind === 'audioinput'))
+                setVideoInputs(devices.filter(d => d.kind === 'videoinput'))
+            })
+        }
+    }, [isJoined])
+
+    // Pagination Logic & Sorting (Camera-on first)
+    const sortedPeers = [...peers].sort((a, b) => {
+        if (a.cameraOn === b.cameraOn) return 0
+        return a.cameraOn ? -1 : 1
+    })
+
+    const paginatedPeers = sortedPeers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    const totalPages = Math.ceil(peers.length / itemsPerPage)
+
+    // UI Visibility Logic
+    const [showUI, setShowUI] = useState(true)
+    const [lastInteraction, setLastInteraction] = useState(Date.now())
+
+    useEffect(() => {
+        const handleActivity = () => {
+            setShowUI(true)
+            setLastInteraction(Date.now())
+        }
+        window.addEventListener('mousemove', handleActivity)
+        window.addEventListener('mousedown', handleActivity)
+        window.addEventListener('keydown', handleActivity)
+        window.addEventListener('touchstart', handleActivity)
+        const interval = setInterval(() => {
+            if (Date.now() - lastInteraction > 3000 && !activeSidebar) {
+                setShowUI(false)
+            }
+        }, 1000)
+        return () => {
+            window.removeEventListener('mousemove', handleActivity)
+            window.removeEventListener('mousedown', handleActivity)
+            window.removeEventListener('keydown', handleActivity)
+            window.removeEventListener('touchstart', handleActivity)
+            clearInterval(interval)
+        }
+    }, [activeSidebar, lastInteraction])
 
     const { messages, sendMessage, unreadCount, markAsRead, setIsActive: setIsChatActive } = useChat(roomId, userId, currentRole)
 
-    // Update Chat Active State when sidebar changes
     useEffect(() => {
         if (activeSidebar === 'chat') {
             setIsChatActive(true)
@@ -143,7 +167,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         } else {
             setIsChatActive(false)
         }
-    }, [activeSidebar, unreadCount]) // Added unreadCount to dep to ensure we clear it if it increments while open (edge case)
+    }, [activeSidebar, unreadCount])
 
     const handleToggleMic = () => {
         const newState = !micOn
@@ -157,36 +181,40 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         hookToggleCamera(newState)
     }
 
-    const handleToggleShare = async () => {
-        if (isSharing) {
-            await stopScreenShare()
-            setIsSharing(false)
-        } else {
-            await shareScreen(() => setIsSharing(false))
-            setIsSharing(true)
-        }
-    }
-
-    const AVAILABLE_LANGUAGES = [
+    const ROOM_LANGUAGES = [
         { code: 'original', name: 'Áudio Original (Piso)', flag: '🏳️' },
-        { code: 'pt', name: 'Português', flag: '🇧🇷' },
-        { code: 'en', name: 'English', flag: '🇺🇸' },
-        { code: 'es', name: 'Español', flag: '🇪🇸' },
+        ...LANGUAGES
     ]
 
     const handleLangChange = (code: string) => {
         setSelectedLang(code)
         setShowLangMenu(false)
-        if (code !== 'original') {
-            setVolumeBalance(80)
-        } else {
-            setVolumeBalance(0)
+        setVolumeBalance(code !== 'original' ? 80 : 0)
+    }
+
+    // Automatic Speaker Detection
+    const handlePeerSpeaking = (id: string, isSpeaking: boolean) => {
+        if (isSpeaking) {
+            setActiveSpeakerId(id)
         }
+    }
+
+    if (!isJoined) {
+        return (
+            <PreCallLobby
+                userName={userName}
+                onJoin={(config) => {
+                    setLobbyConfig(config)
+                    setMicOn(config.micOn)
+                    setCameraOn(config.cameraOn)
+                    setIsJoined(true)
+                }}
+            />
+        )
     }
 
     return (
         <div className="h-screen bg-background flex flex-col relative overflow-hidden text-foreground transition-colors duration-500">
-            {/* Top Bar */}
             {/* Top Bar - Auto Hides */}
             <div className={`absolute top-0 left-0 right-0 p-4 z-[40] flex justify-between items-center transition-all duration-500 ${showUI ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10 pointer-events-none'}`}>
                 <div className="bg-card/40 backdrop-blur-md px-4 py-2 rounded-full pointer-events-auto border border-border flex items-center gap-4 shadow-xl">
@@ -210,98 +238,70 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         {userCount} Online
                     </div>
                 </div>
+
+                {/* View Mode Controls */}
+                <div className="bg-card/40 backdrop-blur-md p-1.5 rounded-2xl flex items-center gap-1 border border-border pointer-events-auto shadow-xl">
+                    <Button
+                        variant={viewMode === 'gallery' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('gallery')}
+                        className="rounded-xl h-8 px-3 text-xs gap-2"
+                    >
+                        <LayoutGrid className="h-3.5 w-3.5" />
+                        Galeria
+                    </Button>
+                    <Button
+                        variant={viewMode === 'speaker' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('speaker')}
+                        className="rounded-xl h-8 px-3 text-xs gap-2"
+                    >
+                        <Maximize2 className="h-3.5 w-3.5" />
+                        Orador
+                    </Button>
+                </div>
             </div>
 
             {/* Main Layout (Flex Row) */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Video Grid Section */}
-                <div className="flex-1 p-4 flex items-center justify-center transition-all duration-300">
-                    <motion.div
-                        layout
-                        className={`grid gap-4 w-full content-center justify-items-center transition-all ${peers.length === 0 ? 'grid-cols-1 max-w-xl' :
-                            peers.length === 1 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl' :
-                                peers.length <= 4 ? 'grid-cols-2 max-w-5xl' :
-                                    'grid-cols-2 md:grid-cols-3 max-w-[1400px]'
-                            }`}
-                        style={{ maxHeight: 'calc(100vh - 180px)' }}
-                    >
-                        {/* Self View */}
-                        <motion.div
-                            layout
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="aspect-video w-full relative rounded-2xl overflow-hidden shadow-2xl border border-white/5 bg-black/40"
-                        >
-                            <LocalVideo stream={localStream} role={currentRole} name="Você" />
-                        </motion.div>
+                <div className="flex-1 p-2 md:p-6 flex items-center justify-center transition-all duration-300 relative">
+                    <VideoGrid
+                        peers={paginatedPeers}
+                        localStream={localStream}
+                        currentRole={currentRole}
+                        micOn={micOn}
+                        mode={viewMode}
+                        activeSpeakerId={activeSpeakerId}
+                        onPeerSpeaking={handlePeerSpeaking}
+                    />
 
-                        {/* Remote Peers */}
-                        <AnimatePresence mode="popLayout">
-                            {peers.map((peer) => {
-                                let vol = 1.0
-                                const speakerLang = (peer as any).language || 'floor'
-
-                                if (selectedLang === 'original') {
-                                    // Original Mode: Hear Floor @ 100%, Interpreters @ 0%
-                                    if (speakerLang === 'floor' || speakerLang === 'original') {
-                                        vol = 1.0
-                                    } else {
-                                        vol = 0.0
-                                    }
-                                } else {
-                                    // Translation Mode (e.g., selected 'pt')
-                                    if (speakerLang === selectedLang) {
-                                        // The interpreter for my language -> 100%
-                                        vol = 1.0
-                                    } else if (speakerLang === 'floor' || speakerLang === 'original') {
-                                        // The floor speaker -> 20% (Background)
-                                        // Invert balance logic: 20 on slider = 20% floor volume
-                                        // Slider 0 = 0% Floor (Full Interpreter), 100 = 100% Floor (No Interpreter distinction)
-                                        // Let's stick to the previous slider logic: 20 means "Focus on Interpreter", so floor is low.
-                                        vol = (100 - volumeBalance) / 100
-                                    } else {
-                                        // Other interpreters -> 0%
-                                        vol = 0.0
-                                    }
-                                }
-
-                                return (
-                                    <motion.div
-                                        key={peer.userId}
-                                        layout
-                                        initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
-                                        className="aspect-video"
-                                    >
-                                        <RemoteVideo
-                                            stream={peer.stream}
-                                            name={peer.userId}
-                                            role={peer.role}
-                                            volume={vol}
-                                        />
-                                    </motion.div>
-                                )
-                            })}
-                        </AnimatePresence>
-
-                        {/* Empty placeholder if alone */}
-                        {peers.length === 0 && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="aspect-video bg-accent/10 rounded-[2.5rem] border-2 border-dashed border-border flex items-center justify-center"
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 z-[60]">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={currentPage === 1}
+                                onClick={() => setCurrentPage(p => p - 1)}
+                                className="text-white hover:bg-white/10"
                             >
-                                <div className="text-muted-foreground text-center">
-                                    <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
-                                        <Users className="h-8 w-8 opacity-40" />
-                                    </div>
-                                    <p className="font-black uppercase tracking-[0.2em] text-xs">Aguardando participantes...</p>
-                                    <p className="text-[10px] mt-2 opacity-50 italic">Convide alguém enviando o link desta sala.</p>
-                                </div>
-                            </motion.div>
-                        )}
-                    </motion.div>
+                                <ChevronLeft className="h-5 w-5" />
+                            </Button>
+                            <span className="text-xs font-bold text-white">
+                                {currentPage} de {totalPages}
+                            </span>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={currentPage === totalPages}
+                                onClick={() => setCurrentPage(p => p + 1)}
+                                className="text-white hover:bg-white/10"
+                            >
+                                <ChevronRight className="h-5 w-5" />
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Sidebars */}
@@ -374,8 +374,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         <div className="text-[10px] font-black text-muted-foreground px-4 py-2 uppercase tracking-[0.3em] mb-2">
                             Canais de Tradução
                         </div>
-                        <div className="space-y-1">
-                            {AVAILABLE_LANGUAGES.map((lang) => (
+                        <div className="max-h-[350px] overflow-y-auto pr-1 space-y-1 custom-scrollbar">
+                            {ROOM_LANGUAGES.map((lang) => (
                                 <button
                                     key={lang.code}
                                     onClick={() => handleLangChange(lang.code)}
@@ -425,7 +425,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 {audioInputs.map((device, i) => (
                                     <DropdownMenuItem
                                         key={i}
-                                        onClick={() => switchDevice('audio', device.deviceId)}
+                                        onClick={() => switchDeviceWebRTC('audio', device.deviceId)}
                                         className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5"
                                     >
                                         {device.label || `Microphone ${i + 1}`}
@@ -459,7 +459,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 {videoInputs.map((device, i) => (
                                     <DropdownMenuItem
                                         key={i}
-                                        onClick={() => switchDevice('video', device.deviceId)}
+                                        onClick={() => switchDeviceWebRTC('video', device.deviceId)}
                                         className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5"
                                     >
                                         {device.label || `Camera ${i + 1}`}
@@ -481,6 +481,14 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                     >
                         <Monitor className="h-6 w-6" />
                     </Button>
+
+                    <SettingsDialog
+                        audioDevices={audioInputs}
+                        videoDevices={videoInputs}
+                        currentAudioId={lobbyConfig?.audioDeviceId}
+                        currentVideoId={lobbyConfig?.videoDeviceId}
+                        onSwitch={switchDeviceWebRTC}
+                    />
                 </div>
 
                 <div className="w-px h-10 bg-border/50 hidden md:block" />
@@ -499,7 +507,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         <div className="flex flex-col items-start leading-tight">
                             <span className="opacity-70 uppercase tracking-[0.2em] text-[8px] font-black">Escutando</span>
                             <span className="font-black text-sm">
-                                {AVAILABLE_LANGUAGES.find(l => l.code === selectedLang)?.name || 'Original'}
+                                {ROOM_LANGUAGES.find(l => l.code === selectedLang)?.name || 'Original'}
                             </span>
                         </div>
                     </Button>
@@ -532,27 +540,19 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
                 <div className="w-px h-10 bg-border/50 hidden md:block" />
 
-                <Button
-                    variant={currentRole === 'interpreter' ? 'default' : 'outline'}
-                    className={cn(
-                        "h-14 px-8 rounded-2xl font-black border-2 transition-all active:scale-95",
-                        currentRole === 'interpreter'
-                            ? 'bg-purple-600 hover:bg-purple-700 border-purple-500 shadow-[0_0_30px_rgba(147,51,234,0.4)] text-white'
-                            : 'border-border bg-accent/20 text-muted-foreground hover:text-foreground hover:bg-accent/40'
-                    )}
-                    onClick={() => {
-                        const newRole = currentRole === 'participant' ? 'interpreter' : 'participant'
-                        setCurrentRole(newRole)
-                        // Reset language when switching roles
-                        if (newRole === 'participant') {
-                            setMyBroadcastLang('floor')
-                            updateMetadata({ language: 'floor' })
-                        }
-                    }}
-                >
-                    <Mic className="h-5 w-5 mr-3" />
-                    {currentRole === 'interpreter' ? 'MODE: INTÉRPRETE' : 'VIRAR INTÉRPRETE'}
-                </Button>
+                {currentRole === 'interpreter' && (
+                    <Button
+                        variant="default"
+                        className="h-14 px-8 rounded-2xl font-black border-2 transition-all active:scale-95 bg-purple-600 hover:bg-purple-700 border-purple-500 shadow-[0_0_30px_rgba(147,51,234,0.4)] text-white"
+                        onClick={() => {
+                            // Already an interpreter, but maybe the button toggles the broadcast lang or panel
+                            // For now keep it as is or change to toggle controls
+                        }}
+                    >
+                        <Mic className="h-5 w-5 mr-3" />
+                        MODO: INTÉRPRETE
+                    </Button>
+                )}
 
                 <div className="flex bg-accent/20 rounded-2xl p-1.5 border border-border">
                     <Button

@@ -9,12 +9,7 @@ interface InterpreterControlsProps {
     onLanguageChange: (lang: string) => void
 }
 
-const AVAILABLE_LANGUAGES = [
-    { code: 'pt', label: 'Português', flag: '🇧🇷' },
-    { code: 'en', label: 'English', flag: '🇺🇸' },
-    { code: 'es', label: 'Español', flag: '🇪🇸' },
-    { code: 'fr', label: 'Français', flag: '🇫🇷' },
-]
+import { LANGUAGES } from "@/lib/languages"
 
 export function InterpreterControls({ role, currentLanguage = 'floor', onLanguageChange }: InterpreterControlsProps) {
     const [isOpen, setIsOpen] = React.useState(false)
@@ -41,8 +36,8 @@ export function InterpreterControls({ role, currentLanguage = 'floor', onLanguag
                         </Button>
                     </div>
 
-                    <div className="space-y-2">
-                        {AVAILABLE_LANGUAGES.map((lang) => (
+                    <div className="max-h-[300px] overflow-y-auto pr-1 space-y-1.5 custom-scrollbar">
+                        {LANGUAGES.map((lang) => (
                             <button
                                 key={lang.code}
                                 onClick={() => {
@@ -58,7 +53,7 @@ export function InterpreterControls({ role, currentLanguage = 'floor', onLanguag
                             >
                                 <span className="flex items-center gap-3">
                                     <span className="text-lg">{lang.flag}</span>
-                                    {lang.label}
+                                    {lang.name}
                                 </span>
                                 {currentLanguage === lang.code && <Check className="h-4 w-4" />}
                             </button>
@@ -76,8 +71,8 @@ export function InterpreterControls({ role, currentLanguage = 'floor', onLanguag
                     <div className="flex flex-col items-start text-xs pr-2">
                         <span className="text-muted-foreground font-semibold text-[10px] uppercase">Interpretando para</span>
                         <span className="font-bold flex items-center gap-1.5">
-                            {AVAILABLE_LANGUAGES.find(l => l.code === currentLanguage)?.flag}
-                            {AVAILABLE_LANGUAGES.find(l => l.code === currentLanguage)?.label || "Selecione..."}
+                            {LANGUAGES.find(l => l.code === currentLanguage)?.flag}
+                            {LANGUAGES.find(l => l.code === currentLanguage)?.name || "Selecione..."}
                         </span>
                     </div>
                 </Button>
