@@ -48,6 +48,37 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([])
     const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([])
 
+    // UI Visibility Logic
+    const [showUI, setShowUI] = useState(true)
+    const [lastInteraction, setLastInteraction] = useState(Date.now())
+
+    useEffect(() => {
+        const handleActivity = () => {
+            setShowUI(true)
+            setLastInteraction(Date.now())
+        }
+
+        window.addEventListener('mousemove', handleActivity)
+        window.addEventListener('mousedown', handleActivity)
+        window.addEventListener('keydown', handleActivity)
+        window.addEventListener('touchstart', handleActivity)
+
+        // Hide UI after 3s of inactivity, ONLY if no sidebar is open
+        const interval = setInterval(() => {
+            if (Date.now() - lastInteraction > 3000 && !activeSidebar) {
+                setShowUI(false)
+            }
+        }, 1000)
+
+        return () => {
+            window.removeEventListener('mousemove', handleActivity)
+            window.removeEventListener('mousedown', handleActivity)
+            window.removeEventListener('keydown', handleActivity)
+            window.removeEventListener('touchstart', handleActivity)
+            clearInterval(interval)
+        }
+    }, [activeSidebar, lastInteraction])
+
     useEffect(() => {
         navigator.mediaDevices.enumerateDevices().then(devices => {
             setAudioInputs(devices.filter(d => d.kind === 'audioinput'))
@@ -123,7 +154,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     return (
         <div className="h-screen bg-background flex flex-col relative overflow-hidden text-foreground transition-colors duration-500">
             {/* Top Bar */}
-            <div className="absolute top-0 left-0 right-0 p-4 z-[40] flex justify-between items-center bg-gradient-to-b from-background to-transparent pointer-events-none">
+            {/* Top Bar - Auto Hides */}
+            <div className={`absolute top-0 left-0 right-0 p-4 z-[40] flex justify-between items-center transition-all duration-500 ${showUI ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10 pointer-events-none'}`}>
                 <div className="bg-card/40 backdrop-blur-md px-4 py-2 rounded-full pointer-events-auto border border-border flex items-center gap-4 shadow-xl">
                     <div className="scale-75 origin-left -ml-2">
                         <Logo />
@@ -145,7 +177,6 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         {userCount} Online
                     </div>
                 </div>
-                {/* Badge removed */}
             </div>
 
             {/* Main Layout (Flex Row) */}
