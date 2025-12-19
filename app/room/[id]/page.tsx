@@ -18,6 +18,7 @@ import {
 import Link from 'next/link'
 
 // Imports updated
+import { createClient } from '@/lib/supabase/client' // NEW IMPORT
 import { useWebRTC } from '@/hooks/use-webrtc'
 import { useChat } from '@/hooks/use-chat'
 import { RemoteVideo, LocalVideo } from '@/components/webrtc/video-player'
@@ -34,15 +35,47 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     const { role } = use(searchParams)
 
     // User Identity Logic
-    const [userId] = useState(() => 'user-' + Math.random().toString(36).substr(2, 9))
+    // User Identity Logic - STRICT MODE
+    const [userId, setUserId] = useState('')
+    const [currentRole, setCurrentRole] = useState<'participant' | 'interpreter'>('participant')
+    const [isLoaded, setIsLoaded] = useState(false)
 
+    useEffect(() => {
+        const initUser = async () => {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+
+            if (user) {
+                setUserId(user.id)
+                // Fetch strict role
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single()
+
+                if (profile?.role === 'interpreter') {
+                    setCurrentRole('interpreter')
+                } else {
+                    setCurrentRole('participant')
+                }
+            } else {
+                // Anonymous Guest fallback
+                setUserId('guest-' + Math.random().toString(36).substr(2, 9))
+                setCurrentRole('participant') // Guests are ALWAYS participants
+            }
+            setIsLoaded(true)
+        }
+        initUser()
+    }, [])
+
+    // Restored State
     const [micOn, setMicOn] = useState(true)
     const [cameraOn, setCameraOn] = useState(true)
     const [selectedLang, setSelectedLang] = useState('original')
     const [volumeBalance, setVolumeBalance] = useState(20)
-    const [myBroadcastLang, setMyBroadcastLang] = useState('floor') // For interpreters
+    const [myBroadcastLang, setMyBroadcastLang] = useState('floor')
     const [showLangMenu, setShowLangMenu] = useState(false)
-    const [currentRole, setCurrentRole] = useState<'participant' | 'interpreter'>(role === 'interpreter' ? 'interpreter' : 'participant')
     const [activeSidebar, setActiveSidebar] = useState<'chat' | 'participants' | null>(null)
     const [isSharing, setIsSharing] = useState(false)
     const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([])

@@ -82,3 +82,27 @@ export async function updateUserLimits(userId: string, limits: Record<string, un
 
     revalidatePath('/admin/users')
 }
+
+export async function updateProfileLanguages(userId: string, languages: string[]) {
+    const supabase = await createClient()
+
+    // Auth check
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ languages })
+        .eq('id', userId)
+
+    if (error) throw new Error(error.message)
+
+    await logAdminAction({
+        action: 'SETTINGS_UPDATE',
+        targetResource: 'user',
+        targetId: userId,
+        details: { languages }
+    })
+
+    revalidatePath('/admin/users')
+}

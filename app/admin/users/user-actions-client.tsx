@@ -18,9 +18,10 @@ import {
 } from "../../../components/ui/dialog"
 import { Input } from "../../../components/ui/input"
 import { Label } from "../../../components/ui/label"
-import { MoreHorizontal, Settings2 } from 'lucide-react'
+import { Checkbox } from "@/components/ui/checkbox"
+import { MoreHorizontal, Settings2, Languages } from 'lucide-react'
 import React, { useState } from 'react'
-import { updateUserRole, updateUserStatus, updateUserLimits } from '../actions'
+import { updateUserRole, updateUserStatus, updateUserLimits, updateProfileLanguages } from '../actions'
 
 interface Profile {
     id: string;
@@ -33,30 +34,58 @@ interface Profile {
         max_participants?: number;
         can_record?: boolean;
     };
+    languages?: string[]; // Added languages
 }
 
 export function UserActionsClient({ profile }: { profile: Profile }): React.ReactNode {
     const status = profile.status || 'active'
-    const [open, setOpen] = useState(false)
+    const [openLimits, setOpenLimits] = useState(false)
+    const [openLang, setOpenLang] = useState(false)
     const [limits, setLimits] = useState({
         max_meetings: profile.limits?.max_meetings || 5,
         max_participants: profile.limits?.max_participants || 50,
         can_record: profile.limits?.can_record || false
     })
 
+    // Languages State
+    const [selectedLangs, setSelectedLangs] = useState<string[]>(profile.languages || [])
+
     const handleSaveLimits = async () => {
         try {
             await updateUserLimits(profile.id, limits)
-            setOpen(false)
+            setOpenLimits(false)
         } catch (error) {
             alert('Erro ao salvar limites')
+        }
+    }
+
+    const handlePromoteToInterpreter = async () => {
+        setOpenLang(true)
+    }
+
+    const confirmInterpreterPromotion = async () => {
+        try {
+            await updateUserRole(profile.id, 'interpreter')
+            await updateProfileLanguages(profile.id, selectedLangs)
+            setOpenLang(false)
+            alert('Usuário promovido a Intérprete com sucesso!')
+        } catch (error) {
+            alert('Erro ao promover.')
+        }
+    }
+
+    const handleLangToggle = (code: string) => {
+        if (selectedLangs.includes(code)) {
+            setSelectedLangs(selectedLangs.filter(l => l !== code))
+        } else {
+            setSelectedLangs([...selectedLangs, code])
         }
     }
 
     return (
         <div className="flex items-center gap-2">
             {/* Limits Modal */}
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog open={openLimits} onOpenChange={setOpenLimits}>
                 <DialogContent className="bg-[#0f172a] border-white/10 text-white">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
@@ -94,6 +123,58 @@ export function UserActionsClient({ profile }: { profile: Profile }): React.Reac
                 </DialogContent>
             </Dialog>
 
+            {/* Language Selection Modal (Interpreter) */}
+            <Dialog open={openLang} onOpenChange={setOpenLang}>
+                <DialogContent className="bg-[#0f172a] border-white/10 text-white">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Languages className="h-5 w-5 text-[#06b6d4]" />
+                            Definir Idiomas do Intérprete
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <p className="text-sm text-gray-400">Selecione os idiomas que este usuário está habilitado a interpretar.</p>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="pt"
+                                    checked={selectedLangs.includes('pt')}
+                                    onCheckedChange={() => handleLangToggle('pt')}
+                                />
+                                <label htmlFor="pt" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Português (BR)
+                                </label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="en"
+                                    checked={selectedLangs.includes('en')}
+                                    onCheckedChange={() => handleLangToggle('en')}
+                                />
+                                <label htmlFor="en" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Inglês (EN)
+                                </label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="es"
+                                    checked={selectedLangs.includes('es')}
+                                    onCheckedChange={() => handleLangToggle('es')}
+                                />
+                                <label htmlFor="es" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Espanhol (ES)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={confirmInterpreterPromotion} className="bg-[#06b6d4] hover:bg-[#0891b2]">
+                            Confirmar & Promover
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0 text-white">
@@ -112,6 +193,9 @@ export function UserActionsClient({ profile }: { profile: Profile }): React.Reac
                     <DropdownMenuItem onClick={() => updateUserRole(profile.id, 'participant')}>
                         Tornar Usuário Padrão
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handlePromoteToInterpreter} className="text-blue-400">
+                        Tornar Intérprete
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => updateUserRole(profile.id, 'admin')} className="text-orange-500">
                         Tornar Admin
                     </DropdownMenuItem>
@@ -119,10 +203,16 @@ export function UserActionsClient({ profile }: { profile: Profile }): React.Reac
                     <DropdownMenuSeparator />
 
                     <DropdownMenuLabel>Governança</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => setOpen(true)} className="text-[#06b6d4]">
+                    <DropdownMenuItem onClick={() => setOpenLimits(true)} className="text-[#06b6d4]">
                         <Settings2 className="h-4 w-4 mr-2" />
                         Editar Limites
                     </DropdownMenuItem>
+                    {profile.role === 'interpreter' && (
+                        <DropdownMenuItem onClick={() => setOpenLang(true)} className="text-[#06b6d4]">
+                            <Languages className="h-4 w-4 mr-2" />
+                            Editar Idiomas
+                        </DropdownMenuItem>
+                    )}
                     {status !== 'active' && (
                         <DropdownMenuItem onClick={() => updateUserStatus(profile.id, 'active')} className="text-green-500">
                             Ativar Usuário
