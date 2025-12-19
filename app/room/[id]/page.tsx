@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState, use } from 'react'
+import { useState, use, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
     Mic, MicOff, Video, VideoOff, PhoneOff,
@@ -52,12 +52,14 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     const { messages, sendMessage, unreadCount, markAsRead, setIsActive: setIsChatActive } = useChat(channel, userId, currentRole)
 
     // Update Chat Active State when sidebar changes
-    if (activeSidebar === 'chat') {
-        setIsChatActive(true)
-        if (unreadCount > 0) markAsRead()
-    } else {
-        setIsChatActive(false)
-    }
+    useEffect(() => {
+        if (activeSidebar === 'chat') {
+            setIsChatActive(true)
+            if (unreadCount > 0) markAsRead()
+        } else {
+            setIsChatActive(false)
+        }
+    }, [activeSidebar, unreadCount]) // Added unreadCount to dep to ensure we clear it if it increments while open (edge case)
 
     const handleToggleMic = () => {
         const newState = !micOn
