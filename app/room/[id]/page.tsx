@@ -185,6 +185,21 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         hookToggleCamera(newState)
     }
 
+    const handleToggleShare = async () => {
+        try {
+            if (isSharing) {
+                await stopScreenShare()
+                setIsSharing(false)
+            } else {
+                await shareScreen()
+                setIsSharing(true)
+            }
+        } catch (err) {
+            console.error("Screen share toggle failed:", err)
+            setIsSharing(false)
+        }
+    }
+
     const ROOM_LANGUAGES = [
         { code: 'original', name: 'Áudio Original (Piso)', flag: '🏳️' },
         ...LANGUAGES
