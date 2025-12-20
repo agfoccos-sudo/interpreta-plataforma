@@ -192,8 +192,11 @@ export async function cleanupExpiredMeetings() {
 
     const twoHoursAgo = new Date(Date.now() - 120 * 60 * 1000).toISOString()
 
+    // Use Admin Client to bypass RLS for mass cleanup
+    const supabaseAdmin = await createAdminClient()
+
     // Update active meetings that started more than 2 hours ago
-    const { data, error, count } = await supabase
+    const { data, error, count } = await supabaseAdmin
         .from('meetings')
         .update({ status: 'ended', end_time: new Date().toISOString() })
         .eq('status', 'active')
