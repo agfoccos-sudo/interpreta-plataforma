@@ -30,7 +30,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/logo'
 import { ShareMeetingDialog } from '@/components/share-meeting-dialog'
-import { LANGUAGES } from '@/lib/languages' // NEW IMPORT
+import { LANGUAGES } from '@/lib/languages'
+import { checkAndEndMeeting } from '@/app/actions/meeting' // NEW IMPORT
 
 import { VideoGrid } from '@/components/room/video-grid'
 import { LayoutGrid, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -71,9 +72,29 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                 // Check Meeting Interpreters (Item 1)
                 const { data: meeting } = await supabase
                     .from('meetings')
-                    .select('settings')
+                    .select('settings, start_time, status')
                     .eq('id', roomId)
                     .single()
+
+                // Check Expiration (Lazy Check)
+                if (meeting?.status === 'active' && meeting.start_time) {
+                    const startTime = new Date(meeting.start_time).getTime()
+                    const diffMinutes = (Date.now() - startTime) / (1000 * 60)
+
+                    if (diffMinutes > 120) {
+                        // Call server action to officially close it
+                        const { expired } = await checkAndEndMeeting(roomId)
+                        if (expired) {
+                            alert('Esta reunião excedeu o limite de tempo de 120 minutos e foi encerrada.')
+                            window.location.href = '/dashboard'
+                            return
+                        }
+                    }
+                } else if (meeting?.status === 'ended') {
+                    alert('Esta reunião já foi encerrada.')
+                    window.location.href = '/dashboard'
+                    return
+                }
 
                 if (meeting?.settings?.interpreters) {
                     const isPreConfigured = meeting.settings.interpreters.some(
@@ -85,6 +106,24 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                     }
                 }
             } else {
+                // Guests also need to check expiration? Ideally yes, but server action is somewhat protected.
+                // Let's do a client check first to fail fast.
+                const { data: meeting } = await supabase.from('meetings').select('status, start_time').eq('id', roomId).single()
+                if (meeting?.status === 'ended') {
+                    alert('Esta reunião já foi encerrada.')
+                    window.location.href = '/dashboard'
+                    return
+                }
+                if (meeting?.status === 'active' && meeting.start_time) {
+                    const startTime = new Date(meeting.start_time).getTime()
+                    const diffMinutes = (Date.now() - startTime) / (1000 * 60)
+                    if (diffMinutes > 120) {
+                        alert('Esta reunião excedeu o limite de uso.')
+                        window.location.href = '/login' // Guests to login
+                        return
+                    }
+                }
+
                 const guestId = 'guest-' + Math.random().toString(36).substr(2, 9)
                 setUserId(guestId)
                 setUserName('Convidado-' + guestId.slice(6, 10))
@@ -93,7 +132,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
             setIsLoaded(true)
         }
         initUser()
-    }, [])
+    }, [roomId])
 
     const [micOn, setMicOn] = useState(true)
     const [cameraOn, setCameraOn] = useState(true)

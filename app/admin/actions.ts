@@ -180,3 +180,40 @@ export async function createUser(formData: FormData) {
     revalidatePath('/admin/users')
     return { success: true }
 }
+
+export async function cleanupExpiredMeetings() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+
+    // Check if admin
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (profile?.role !== 'admin') throw new Error('Unauthorized')
+
+    const twoHoursAgo = new Date(Date.now() - 120 * 60 * 1000).toISOString()
+
+    // Update active meetings that started more than 2 hours ago
+    const { data, error, count } = await supabase
+        .from('meetings')
+        .update({ status: 'ended', end_time: new Date().toISOString() })
+        .eq('status', 'active')
+        .lt('start_time', twoHoursAgo)
+        .select('id')
+
+    if (error) {
+        console.error('Error cleaning up meetings:', error)
+        throw new Error('Failed to clean up meetings')
+    }
+
+    if (count && count > 0) {
+        await logAdminAction({
+            action: 'MEETING_KILL',
+            targetResource: 'meeting',
+            targetId: 'multiple',
+            details: { count, reason: 'expired_120_min', ended_ids: data.map(m => m.id) }
+        })
+    }
+
+    revalidatePath('/admin/meetings')
+    return { success: true, count: data?.length || 0 }
+}
