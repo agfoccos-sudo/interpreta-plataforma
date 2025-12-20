@@ -8,7 +8,7 @@ interface LayoutParams {
     count: number
 }
 
-export function useGalleryLayout(containerRef: RefObject<HTMLElement>, participantCount: number) {
+export function useGalleryLayout(containerRef: RefObject<HTMLElement | null>, participantCount: number) {
     const [layout, setLayout] = useState<LayoutParams>({ width: 0, height: 0, cols: 1, rows: 1, count: 0 })
 
     const calculateLayout = useCallback(() => {
