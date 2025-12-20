@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Mic, User, Shield, VideoOff, Globe } from "lucide-react"
+import { Mic, User, Shield, VideoOff, Globe, MicOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface VideoProps {
