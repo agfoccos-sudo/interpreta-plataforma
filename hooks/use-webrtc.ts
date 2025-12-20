@@ -50,7 +50,6 @@ export function useWebRTC(
     }
 
     const supabase = createClient()
-    const channelRef = useRef<RealtimeChannel | null>(null)
     const peersRef = useRef<Map<string, PeerData>>(new Map())
     const currentAudioDeviceId = useRef<string | undefined>(initialConfig.audioDeviceId)
     const currentVideoDeviceId = useRef<string | undefined>(initialConfig.videoDeviceId)

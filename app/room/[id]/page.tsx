@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState, use, useEffect } from 'react'
+import { useState, use, useEffect, useRef, ChangeEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import {
     Mic, MicOff, Video, VideoOff, PhoneOff,
@@ -117,6 +117,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         updateMetadata,
         switchDevice: switchDeviceWebRTC,
         sendEmoji,
+        shareVideoFile,
         toggleHand,
         localHandRaised,
         reactions
@@ -146,7 +147,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     const [lastInteraction, setLastInteraction] = useState(Date.now())
     const fileInputRef = useRef<HTMLInputElement>(null)
 
-    const handleVideoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleVideoFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (file) {
             setIsSharing(true)
