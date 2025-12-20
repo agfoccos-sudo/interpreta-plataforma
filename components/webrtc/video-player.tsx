@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils"
 
 interface VideoProps {
     stream?: MediaStream | null
-    name: string
-    role: string
+    name?: string
+    role?: string
     volume?: number
     isLocal?: boolean
 }
@@ -79,7 +79,7 @@ function AudioMeter({ stream, onSpeakingChange }: { stream?: MediaStream | null,
     )
 }
 
-export function RemoteVideo({ stream, name, role, volume = 1.0, micOff, onSpeakingChange }: VideoProps & { micOff?: boolean, onSpeakingChange?: (isSpeaking: boolean) => void }) {
+export function RemoteVideo({ stream, name = "Participante", role = "participant", volume = 1.0, micOff, onSpeakingChange }: VideoProps & { micOff?: boolean, onSpeakingChange?: (isSpeaking: boolean) => void }) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isSpeaking, setIsSpeaking] = useState(false)
 
@@ -179,7 +179,7 @@ export function RemoteVideo({ stream, name, role, volume = 1.0, micOff, onSpeaki
     )
 }
 
-export function LocalVideo({ stream, role, micOff, name = "Você", onSpeakingChange }: VideoProps & { micOff?: boolean, onSpeakingChange?: (isSpeaking: boolean) => void }) {
+export function LocalVideo({ stream, role = "participant", micOff, name = "Você", onSpeakingChange }: VideoProps & { micOff?: boolean, onSpeakingChange?: (isSpeaking: boolean) => void }) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isSpeaking, setIsSpeaking] = useState(false)
 

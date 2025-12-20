@@ -293,6 +293,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         mode={viewMode}
                         activeSpeakerId={activeSpeakerId}
                         onPeerSpeaking={handlePeerSpeaking}
+                        localUserName={userName}
                     />
 
                     {/* Pagination Controls */}
