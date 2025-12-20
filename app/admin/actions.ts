@@ -184,39 +184,56 @@ export async function createUser(formData: FormData) {
 export async function cleanupExpiredMeetings() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+
+    if (!user) {
+        console.error('Cleanup failed: No authenticated user')
+        return { success: false, error: 'Usuário não autenticado.' }
+    }
 
     // Check if admin
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    if (profile?.role !== 'admin') throw new Error('Unauthorized')
-
-    const twoHoursAgo = new Date(Date.now() - 120 * 60 * 1000).toISOString()
-
-    // Use Admin Client to bypass RLS for mass cleanup
-    const supabaseAdmin = await createAdminClient()
-
-    // Update active meetings that started more than 2 hours ago
-    const { data, error, count } = await supabaseAdmin
-        .from('meetings')
-        .update({ status: 'ended', end_time: new Date().toISOString() })
-        .eq('status', 'active')
-        .lt('start_time', twoHoursAgo)
-        .select('id')
-
-    if (error) {
-        console.error('Error cleaning up meetings:', error)
-        throw new Error('Failed to clean up meetings')
+    if (profile?.role !== 'admin') {
+        console.error(`Cleanup failed: User ${user.id} is not admin`)
+        return { success: false, error: 'Permissão negada (Não é admin).' }
     }
 
-    if (count && count > 0) {
-        await logAdminAction({
-            action: 'MEETING_KILL',
-            targetResource: 'meeting',
-            targetId: 'multiple',
-            details: { count, reason: 'expired_120_min', ended_ids: data.map(m => m.id) }
-        })
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.error('Cleanup failed: SUPABASE_SERVICE_ROLE_KEY is missing')
+        return { success: false, error: 'Erro de Configuração: Chave de Serviço ausente no servidor.' }
     }
 
-    revalidatePath('/admin/meetings')
-    return { success: true, count: data?.length || 0 }
+    try {
+        const twoHoursAgo = new Date(Date.now() - 120 * 60 * 1000).toISOString()
+
+        // Use Admin Client to bypass RLS for mass cleanup
+        const supabaseAdmin = await createAdminClient()
+
+        // Update active meetings that started more than 2 hours ago
+        const { data, error, count } = await supabaseAdmin
+            .from('meetings')
+            .update({ status: 'ended', end_time: new Date().toISOString() })
+            .eq('status', 'active')
+            .lt('start_time', twoHoursAgo)
+            .select('id')
+
+        if (error) {
+            console.error('Error cleaning up meetings:', error)
+            return { success: false, error: `Erro no Banco de Dados: ${error.message}` }
+        }
+
+        if (count && count > 0) {
+            await logAdminAction({
+                action: 'MEETING_KILL',
+                targetResource: 'meeting',
+                targetId: 'multiple',
+                details: { count, reason: 'expired_120_min', ended_ids: data?.map(m => m.id) }
+            })
+        }
+
+        revalidatePath('/admin/meetings')
+        return { success: true, count: data?.length || 0 }
+    } catch (err) {
+        console.error('Unexpected error in cleanupExpiredMeetings:', err)
+        return { success: false, error: 'Erro inesperado no servidor.' }
+    }
 }

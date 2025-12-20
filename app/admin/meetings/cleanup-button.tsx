@@ -14,10 +14,15 @@ export function CleanupButton() {
         setLoading(true)
         try {
             const result = await cleanupExpiredMeetings()
-            alert(`Limpeza concluída! ${result.count} reuniões foram encerradas.`)
+
+            if (result.success) {
+                alert(`Limpeza concluída! ${result.count} reuniões foram encerradas.`)
+            } else {
+                alert(`Falha ao limpar: ${result.error || 'Erro desconhecido'}`)
+            }
         } catch (error) {
             console.error(error)
-            alert('Falha ao limpar reuniões.')
+            alert('Falha crítica ao tentar limpar reuniões.')
         } finally {
             setLoading(false)
         }
