@@ -290,10 +290,13 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         localStream={localStream}
                         currentRole={currentRole}
                         micOn={micOn}
+                        cameraOn={cameraOn}
                         mode={viewMode}
                         activeSpeakerId={activeSpeakerId}
                         onPeerSpeaking={handlePeerSpeaking}
                         localUserName={userName}
+                        selectedLang={selectedLang}
+                        volumeBalance={volumeBalance}
                     />
 
                     {/* Pagination Controls */}

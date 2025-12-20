@@ -9,11 +9,14 @@ interface VideoGridProps {
     localStream: MediaStream | null
     currentRole: string
     micOn: boolean
+    cameraOn: boolean
     mode: 'gallery' | 'speaker'
     onSpeakerChange?: (userId: string) => void
     activeSpeakerId?: string | null
     onPeerSpeaking?: (id: string, isSpeaking: boolean) => void
     localUserName?: string
+    selectedLang?: string
+    volumeBalance?: number
 }
 
 export function VideoGrid({
@@ -21,16 +24,19 @@ export function VideoGrid({
     localStream,
     currentRole,
     micOn,
+    cameraOn,
     mode,
     activeSpeakerId,
     onPeerSpeaking,
-    localUserName = "Você"
+    localUserName = "Você",
+    selectedLang = 'original',
+    volumeBalance = 80
 }: VideoGridProps) {
     const containerRef = useRef<HTMLDivElement>(null)
 
     // Total participants including self
     const allParticipants = [
-        { userId: 'local', isLocal: true, stream: localStream, role: currentRole, micOn, name: localUserName },
+        { userId: 'local', isLocal: true, stream: localStream, role: currentRole, micOn, cameraOn, name: localUserName },
         ...peers.map(p => ({ ...p, isLocal: false }))
     ]
 
@@ -40,6 +46,15 @@ export function VideoGrid({
     // Default to first peer or local if activeSpeakerId is null
     const speakerData = allParticipants.find(p => p.userId === activeSpeakerId) || allParticipants[0]
     const others = allParticipants.filter(p => p.userId !== speakerData?.userId)
+
+    const calcVolume = (p: any) => {
+        if (selectedLang === 'original') return 1.0
+        if (p.role === 'interpreter' && p.language === selectedLang) {
+            return volumeBalance / 100
+        }
+        // If it's a normal participant or interpreter for another language, it's the "background"
+        return (100 - volumeBalance) / 100
+    }
 
     return (
         <div ref={containerRef} className="w-full h-full p-2 flex flex-col items-center justify-center overflow-hidden">
@@ -62,13 +77,15 @@ export function VideoGrid({
                                 className="w-full h-full box-border"
                             >
                                 {p.isLocal ? (
-                                    <LocalVideo stream={p.stream} role={p.role} micOff={!p.micOn} name={p.name} onSpeakingChange={(s) => onPeerSpeaking?.('local', s)} />
+                                    <LocalVideo stream={p.stream} role={p.role} micOff={!p.micOn} cameraOff={!p.cameraOn} name={p.name} onSpeakingChange={(s) => onPeerSpeaking?.('local', s)} />
                                 ) : (
                                     <RemoteVideo
                                         stream={p.stream}
                                         name={p.userId}
                                         role={p.role}
                                         micOff={p.micOn === false}
+                                        cameraOff={p.cameraOn === false}
+                                        volume={calcVolume(p)}
                                         onSpeakingChange={(s) => onPeerSpeaking?.(p.userId, s)}
                                     />
                                 )}
@@ -87,13 +104,15 @@ export function VideoGrid({
                                 className="w-full h-full"
                             >
                                 {speakerData.isLocal ? (
-                                    <LocalVideo stream={speakerData.stream} role={speakerData.role} micOff={!speakerData.micOn} name={speakerData.name} onSpeakingChange={(s) => onPeerSpeaking?.('local', s)} />
+                                    <LocalVideo stream={speakerData.stream} role={speakerData.role} micOff={!speakerData.micOn} cameraOff={!speakerData.cameraOn} name={speakerData.name} onSpeakingChange={(s) => onPeerSpeaking?.('local', s)} />
                                 ) : (
                                     <RemoteVideo
                                         stream={speakerData.stream}
                                         name={speakerData.userId}
                                         role={speakerData.role}
                                         micOff={speakerData.micOn === false}
+                                        cameraOff={speakerData.cameraOn === false}
+                                        volume={calcVolume(speakerData)}
                                         onSpeakingChange={(s) => onPeerSpeaking?.(speakerData.userId, s)}
                                     />
                                 )}
@@ -113,13 +132,15 @@ export function VideoGrid({
                                     className="aspect-video w-48 md:w-full shrink-0"
                                 >
                                     {p.isLocal ? (
-                                        <LocalVideo stream={p.stream} role={p.role} micOff={!p.micOn} name={p.name} onSpeakingChange={(s) => onPeerSpeaking?.('local', s)} />
+                                        <LocalVideo stream={p.stream} role={p.role} micOff={!p.micOn} cameraOff={!p.cameraOn} name={p.name} onSpeakingChange={(s) => onPeerSpeaking?.('local', s)} />
                                     ) : (
                                         <RemoteVideo
                                             stream={p.stream}
                                             name={p.userId}
                                             role={p.role}
                                             micOff={p.micOn === false}
+                                            cameraOff={p.cameraOn === false}
+                                            volume={calcVolume(p)}
                                             onSpeakingChange={(s) => onPeerSpeaking?.(p.userId, s)}
                                         />
                                     )}

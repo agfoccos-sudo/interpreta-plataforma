@@ -8,6 +8,7 @@ interface VideoProps {
     role?: string
     volume?: number
     isLocal?: boolean
+    cameraOff?: boolean
 }
 
 function AudioMeter({ stream, onSpeakingChange }: { stream?: MediaStream | null, onSpeakingChange?: (isSpeaking: boolean) => void }) {
@@ -79,7 +80,7 @@ function AudioMeter({ stream, onSpeakingChange }: { stream?: MediaStream | null,
     )
 }
 
-export function RemoteVideo({ stream, name = "Participante", role = "participant", volume = 1.0, micOff, onSpeakingChange }: VideoProps & { micOff?: boolean, onSpeakingChange?: (isSpeaking: boolean) => void }) {
+export function RemoteVideo({ stream, name = "Participante", role = "participant", volume = 1.0, micOff, cameraOff, onSpeakingChange }: VideoProps & { micOff?: boolean, onSpeakingChange?: (isSpeaking: boolean) => void }) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isSpeaking, setIsSpeaking] = useState(false)
 
@@ -166,12 +167,20 @@ export function RemoteVideo({ stream, name = "Participante", role = "participant
                     <div className="relative">
                         <div className="absolute inset-0 bg-[#06b6d4]/20 rounded-full blur-3xl animate-pulse" />
                         <div className="relative bg-card/50 backdrop-blur-xl border border-border p-8 rounded-full shadow-inner ring-1 ring-white/5">
-                            <Globe className="h-12 w-12 text-[#06b6d4] animate-spin-slow" />
+                            {cameraOff ? (
+                                <VideoOff className="h-12 w-12 text-muted-foreground opacity-50" />
+                            ) : (
+                                <Globe className="h-12 w-12 text-[#06b6d4] animate-spin-slow" />
+                            )}
                         </div>
                     </div>
                     <div className="mt-6 text-center">
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">Sinal de Entrada</p>
-                        <p className="text-sm font-bold text-foreground/50 mt-1 italic">Aguardando {name}...</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">
+                            {cameraOff ? "Câmera Desligada" : "Sinal de Entrada"}
+                        </p>
+                        <p className="text-sm font-bold text-foreground/50 mt-1 italic">
+                            {cameraOff ? name : `Aguardando ${name}...`}
+                        </p>
                     </div>
                 </div>
             )}
@@ -179,7 +188,7 @@ export function RemoteVideo({ stream, name = "Participante", role = "participant
     )
 }
 
-export function LocalVideo({ stream, role = "participant", micOff, name = "Você", onSpeakingChange }: VideoProps & { micOff?: boolean, onSpeakingChange?: (isSpeaking: boolean) => void }) {
+export function LocalVideo({ stream, role = "participant", micOff, cameraOff, name = "Você", onSpeakingChange }: VideoProps & { micOff?: boolean, onSpeakingChange?: (isSpeaking: boolean) => void }) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isSpeaking, setIsSpeaking] = useState(false)
 
@@ -198,7 +207,7 @@ export function LocalVideo({ stream, role = "participant", micOff, name = "Você
                     : "border-[#06b6d4] shadow-[0_0_40px_rgba(6,182,212,0.4)] scale-[1.02] z-10"
                 : "border-border/30 hover:border-[#06b6d4]/50"
         )}>
-            {stream ? (
+            {!cameraOff && stream ? (
                 <>
                     <video
                         ref={videoRef}
@@ -240,7 +249,9 @@ export function LocalVideo({ stream, role = "participant", micOff, name = "Você
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-accent/10">
                     <div className="bg-card/50 backdrop-blur-xl border border-border p-8 rounded-[2.5rem] shadow-xl">
                         <VideoOff className="h-10 w-10 text-muted-foreground opacity-30 mb-4 mx-auto" />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">Câmera Desligada</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">
+                            {cameraOff ? "Você desligou a câmera" : "Câmera Desligada"}
+                        </p>
                     </div>
                 </div>
             )}

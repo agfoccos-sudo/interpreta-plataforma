@@ -40,6 +40,8 @@ export function useWebRTC(
     const supabase = createClient()
     const channelRef = useRef<RealtimeChannel | null>(null)
     const peersRef = useRef<Map<string, PeerData>>(new Map())
+    const currentAudioDeviceId = useRef<string | undefined>(initialConfig.audioDeviceId)
+    const currentVideoDeviceId = useRef<string | undefined>(initialConfig.videoDeviceId)
 
     // 1. Initialize User Media (Camera/Mic)
     useEffect(() => {
@@ -70,6 +72,9 @@ export function useWebRTC(
                     audio: initialConfig.micOn !== false ? (initialConfig.audioDeviceId ? { deviceId: { exact: initialConfig.audioDeviceId } } : true) : false,
                     video: initialConfig.cameraOn !== false ? (initialConfig.videoDeviceId ? { deviceId: { exact: initialConfig.videoDeviceId } } : true) : false
                 }
+
+                if (initialConfig.audioDeviceId) currentAudioDeviceId.current = initialConfig.audioDeviceId
+                if (initialConfig.videoDeviceId) currentVideoDeviceId.current = initialConfig.videoDeviceId
 
                 addLog(`Initializing media with constraints: ${JSON.stringify(constraints)}`)
                 const stream = await navigator.mediaDevices.getUserMedia(constraints)
@@ -371,7 +376,15 @@ export function useWebRTC(
             peersRef.current.forEach((peerData, peerId) => {
                 if (peerData.peer && !peerData.peer.destroyed) {
                     addLog(`Replacing track for peer ${peerId}`)
-                    peerData.peer.replaceTrack(currentVideoTrack, screenTrack, localStream)
+                    try {
+                        if (currentVideoTrack) {
+                            peerData.peer.replaceTrack(currentVideoTrack, screenTrack, localStream)
+                        } else {
+                            peerData.peer.addTrack(screenTrack, localStream)
+                        }
+                    } catch (e) {
+                        console.error(`Failed to replace track for peer ${peerId}`, e)
+                    }
                 }
             })
 
@@ -399,7 +412,11 @@ export function useWebRTC(
                 localStream.removeTrack(screenTrack)
             }
 
-            const cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            const constraints = {
+                video: currentVideoDeviceId.current ? { deviceId: { exact: currentVideoDeviceId.current } } : true,
+                audio: false
+            }
+            const cameraStream = await navigator.mediaDevices.getUserMedia(constraints)
             const cameraTrack = cameraStream.getVideoTracks()[0]
 
             if (cameraTrack) {
@@ -407,7 +424,11 @@ export function useWebRTC(
                 // Replace track back for all peers
                 peersRef.current.forEach((peerData, peerId) => {
                     if (peerData.peer && !peerData.peer.destroyed) {
-                        peerData.peer.replaceTrack(screenTrack, cameraTrack, localStream)
+                        try {
+                            peerData.peer.replaceTrack(screenTrack, cameraTrack, localStream)
+                        } catch (e) {
+                            console.error(`Failed to revert track for peer ${peerId}`, e)
+                        }
                     }
                 })
             }
@@ -459,6 +480,8 @@ export function useWebRTC(
 
             // Force re-render of local video
             setLocalStream(new MediaStream(localStream.getTracks()))
+            if (kind === 'audio') currentAudioDeviceId.current = deviceId
+            else currentVideoDeviceId.current = deviceId
             addLog(`Switched ${kind} device to ${deviceId}`)
         } catch (e) {
             console.error(`Failed to switch ${kind} device`, e)
