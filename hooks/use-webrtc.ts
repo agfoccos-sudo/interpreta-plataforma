@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import SimplePeer from 'simple-peer'
 import { RealtimeChannel } from '@supabase/supabase-js'
+import { playNotificationSound } from '@/lib/audio-effects'
 
 interface PeerData {
     peer: SimplePeer.Instance
@@ -175,6 +176,7 @@ export function useWebRTC(
             })
             .on('broadcast', { event: 'hand-toggle' }, (event: { payload: { userId: string, enabled: boolean } }) => {
                 const { userId: remoteUserId, enabled } = event.payload
+                if (enabled) playNotificationSound() // Play sound when someone raises hand
                 setPeers(prev => {
                     const newMap = new Map(prev)
                     const existing = newMap.get(remoteUserId)
@@ -528,6 +530,7 @@ export function useWebRTC(
     const toggleHand = () => {
         const newState = !localHandRaised
         setLocalHandRaised(newState)
+        if (newState) playNotificationSound() // Play local sound
         channelRef.current?.send({
             type: 'broadcast',
             event: 'hand-toggle',
