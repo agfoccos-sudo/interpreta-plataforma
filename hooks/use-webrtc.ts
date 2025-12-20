@@ -15,6 +15,9 @@ interface PeerData {
     cameraOn?: boolean
     isSpeaking?: boolean
     handRaised?: boolean
+    name?: string
+    isPresentation?: boolean
+    parentUserId?: string
 }
 
 
@@ -274,15 +277,15 @@ export function useWebRTC(
         })
 
         peer.on('stream', (remoteStream) => {
-            console.log("Received stream from", targetUserId)
+            console.log("Received primary stream from", targetUserId)
             addLog(`Received stream from ${targetUserId}: ${remoteStream.getAudioTracks().length} Audio, ${remoteStream.getVideoTracks().length} Video`)
+
             setPeers(prev => {
                 const newMap = new Map(prev)
                 const existing = newMap.get(targetUserId)
                 if (existing) {
                     newMap.set(targetUserId, { ...existing, stream: remoteStream })
                 } else {
-                    // Should not happen if logic is correct, but safe fallback
                     newMap.set(targetUserId, {
                         peer,
                         stream: remoteStream,
@@ -295,6 +298,32 @@ export function useWebRTC(
                 }
                 return newMap
             })
+        })
+
+        peer.on('track', (track, stream) => {
+            addLog(`Track received from ${targetUserId}: ${track.kind}`)
+            // If we receive a second video track, it's likely a presentation
+            if (track.kind === 'video') {
+                const videoTracks = stream.getVideoTracks()
+                if (videoTracks.length > 1 && track.id === videoTracks[videoTracks.length - 1].id) {
+                    addLog(`Detected secondary video track (Presentation) from ${targetUserId}`)
+                    // Create a virtual peer for presentation
+                    const presentationId = `${targetUserId}-presentation`
+                    setPeers(prev => {
+                        const newMap = new Map(prev)
+                        newMap.set(presentationId, {
+                            peer, // Shares the same peer connection
+                            stream: new MediaStream([track]),
+                            userId: presentationId,
+                            role: 'presentation',
+                            name: `Apresentação de ${targetUserId}`,
+                            isPresentation: true,
+                            parentUserId: targetUserId
+                        })
+                        return newMap
+                    })
+                }
+            }
         })
 
         peer.on('close', () => {
@@ -401,11 +430,10 @@ export function useWebRTC(
 
             addLog(`Screen share started. Video: ${screenVideoTrack.id}, Audio: ${screenAudioTrack?.id || 'none'}`)
 
-            // Handle Video Replacement
-            if (currentVideoTrack) {
-                currentVideoTrack.stop()
-                localStream.removeTrack(currentVideoTrack)
-            }
+            // Do NOT stop or remove the current video track (camera)
+            // We only add the screen track to the local stream object for consistency,
+            // but the main goal is to send it as an additional track to peers.
+            addLog(`Adding screen track ${screenVideoTrack.id} to local stream`)
             localStream.addTrack(screenVideoTrack)
 
             // Handle Audio Mixing/Replacement
@@ -431,23 +459,27 @@ export function useWebRTC(
                 }
             }
 
-            // Replace tracks for all peers
+            // Add screen track to all peers (new renegotiation)
             peersRef.current.forEach((peerData, peerId) => {
                 if (peerData.peer && !peerData.peer.destroyed) {
                     try {
-                        if (currentVideoTrack) {
-                            peerData.peer.replaceTrack(currentVideoTrack, screenVideoTrack, localStream)
-                        } else {
-                            peerData.peer.addTrack(screenVideoTrack, localStream)
-                        }
+                        addLog(`Adding new track to peer ${peerId}`)
+                        peerData.peer.addTrack(screenVideoTrack, localStream)
 
                         if (screenAudioTrack && currentAudioTrack && finalAudioTrack) {
                             peerData.peer.replaceTrack(currentAudioTrack, finalAudioTrack, localStream)
                         }
                     } catch (e) {
-                        console.error(`Failed to replace tracks for peer ${peerId}`, e)
+                        console.error(`Failed to add presentation track for peer ${peerId}`, e)
                     }
                 }
+            })
+
+            // Broadcast presentation status
+            channelRef.current?.send({
+                type: 'broadcast',
+                event: 'presentation-toggle',
+                payload: { userId, enabled: true, trackId: screenVideoTrack.id }
             })
 
             screenVideoTrack.onended = () => {
@@ -550,13 +582,26 @@ export function useWebRTC(
             if (!localStream) return
             addLog("Stopping screen share, reverting to camera...")
 
-            const screenVideoTrack = localStream.getVideoTracks()[0]
+            const screenVideoTrack = localStream.getVideoTracks().find(t => t.id !== currentVideoDeviceId.current && t.label.toLowerCase().includes('screen') || t.id !== originalMicTrackRef.current?.id)
+            // Note: Identifying the screen track precisely might need better logic, but this is a good heuristic
+
             const currentAudioTrack = localStream.getAudioTracks()[0]
 
-            if (screenVideoTrack) {
-                screenVideoTrack.stop()
-                localStream.removeTrack(screenVideoTrack)
+            // Find any track that isn't the primary camera
+            const tracks = localStream.getVideoTracks()
+            const realScreenTrack = tracks.length > 1 ? tracks[tracks.length - 1] : tracks[0]
+
+            if (realScreenTrack) {
+                realScreenTrack.stop()
+                localStream.removeTrack(realScreenTrack)
             }
+
+            // Broadcast presentation end
+            channelRef.current?.send({
+                type: 'broadcast',
+                event: 'presentation-toggle',
+                payload: { userId, enabled: false }
+            })
 
             // Cleanup Video Element
             if (videoElementRef.current) {
@@ -581,13 +626,10 @@ export function useWebRTC(
                 localStream.addTrack(cameraTrack)
             }
 
-            // Replace tracks for all peers
+            // Replace audios for all peers back to original mic if needed
             peersRef.current.forEach((peerData, peerId) => {
                 if (peerData.peer && !peerData.peer.destroyed) {
                     try {
-                        if (screenVideoTrack && cameraTrack) {
-                            peerData.peer.replaceTrack(screenVideoTrack, cameraTrack, localStream)
-                        }
                         if (currentAudioTrack && micTrack && currentAudioTrack !== micTrack) {
                             peerData.peer.replaceTrack(currentAudioTrack, micTrack, localStream)
                         }

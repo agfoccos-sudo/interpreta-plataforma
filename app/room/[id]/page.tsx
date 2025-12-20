@@ -181,6 +181,14 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         }
     }, [activeSidebar, lastInteraction])
 
+    // Auto-switch to Speaker Mode when a presentation is detected
+    useEffect(() => {
+        const hasPresentation = peers.some(p => p.role === 'presentation')
+        if (hasPresentation || isSharing) {
+            setViewMode('speaker')
+        }
+    }, [peers, isSharing])
+
     const { messages, sendMessage, unreadCount, markAsRead, setIsActive: setIsChatActive } = useChat(roomId, userId, currentRole)
 
     useEffect(() => {

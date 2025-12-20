@@ -47,11 +47,17 @@ export function VideoGrid({
 
     const galleryLayout = useGalleryLayout(containerRef, allParticipants.length)
 
+    // Find presentation (virtual peer)
+    const presentation = allParticipants.find(p => p.role === 'presentation')
+
     // Find the main speaker for Speaker Mode
-    // Priority: Pinned > Active Speaker > First participant
-    const currentSpeakerId = pinnedSpeakerId || activeSpeakerId || allParticipants[0]?.userId
+    // Priority: Presentation > Pinned > Active Speaker > First participant
+    const currentSpeakerId = presentation?.userId || pinnedSpeakerId || activeSpeakerId || allParticipants[0]?.userId
     const speakerData = allParticipants.find(p => p.userId === currentSpeakerId) || allParticipants[0]
-    const others = allParticipants.filter(p => p.userId !== speakerData?.userId)
+
+    // Filter others: exclude the current speaker (presentation or other)
+    // AND ensure we don't show the virtual presentation peer in the sidebar
+    const others = allParticipants.filter(p => p.userId !== speakerData?.userId && p.role !== 'presentation')
 
     const calcVolume = (p: any) => {
         if (selectedLang === 'original') return 1.0
