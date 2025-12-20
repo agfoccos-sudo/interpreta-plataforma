@@ -135,12 +135,16 @@ export async function createUser(formData: FormData) {
         // 3. Create user using Admin Client (Bypass email confirmation)
         const supabaseAdmin = await createAdminClient()
 
+        // Map role to DB allowed values ('admin', 'user')
+        const dbRole = role === 'admin' ? 'admin' : 'user'
+
         const { data: newUser, error } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
             email_confirm: true,
             user_metadata: {
                 full_name: fullName,
+                role: dbRole, // Fixes trigger constraint failure
                 must_reset_password: true
             }
         })
