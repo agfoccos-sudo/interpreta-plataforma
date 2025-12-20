@@ -5,7 +5,7 @@ import { useState, use, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
     Mic, MicOff, Video, VideoOff, PhoneOff,
-    Globe, Users, MessageSquare, Monitor, X, ChevronUp, Settings, Share2, Hand, Smile
+    Globe, Users, MessageSquare, Monitor, X, ChevronUp, Settings, Share2, Hand, Smile, PlayCircle
 } from 'lucide-react'
 import { FloatingReactions } from '@/components/room/floating-reactions'
 import {
@@ -144,6 +144,18 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     // UI Visibility Logic
     const [showUI, setShowUI] = useState(true)
     const [lastInteraction, setLastInteraction] = useState(Date.now())
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const handleVideoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            setIsSharing(true)
+            await shareVideoFile(file, () => {
+                setIsSharing(false)
+                if (fileInputRef.current) fileInputRef.current.value = ''
+            })
+        }
+    }
 
     useEffect(() => {
         const handleActivity = () => {
@@ -510,18 +522,46 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         </DropdownMenu>
                     </div>
 
-                    <Button
-                        variant={isSharing ? "default" : "secondary"}
-                        size="icon"
-                        className={cn(
-                            "h-14 w-14 rounded-2xl shadow-xl transition-all active:scale-95 border-0 hidden md:flex",
-                            isSharing ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20 animate-pulse" : "bg-accent/50 text-foreground hover:bg-accent"
-                        )}
-                        onClick={handleToggleShare}
-                        title="Compartilhar Tela"
-                    >
-                        <Monitor className="h-6 w-6" />
-                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant={isSharing ? "default" : "secondary"}
+                                size="icon"
+                                className={cn(
+                                    "h-14 w-14 rounded-2xl shadow-xl transition-all active:scale-95 border-0 hidden md:flex",
+                                    isSharing ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20 animate-pulse" : "bg-accent/50 text-foreground hover:bg-accent"
+                                )}
+                                title="Compartilhar"
+                            >
+                                <Monitor className="h-6 w-6" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="top" align="center" className="w-56 mb-4 rounded-2xl bg-card/80 backdrop-blur-xl border-border p-2 shadow-2xl">
+                            <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">Opções de Compartilhamento</DropdownMenuLabel>
+                            <DropdownMenuItem
+                                onClick={handleToggleShare}
+                                className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5 flex items-center gap-2"
+                            >
+                                <Monitor className="h-4 w-4" />
+                                {isSharing ? "Parar Compartilhamento" : "Compartilhar Tela"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => fileInputRef.current?.click()}
+                                className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5 flex items-center gap-2"
+                            >
+                                <PlayCircle className="h-4 w-4" />
+                                Compartilhar Vídeo Local
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleVideoFileChange}
+                        accept="video/*"
+                        className="hidden"
+                    />
 
                     <SettingsDialog
                         audioDevices={audioInputs}

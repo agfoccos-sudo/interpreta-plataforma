@@ -37,6 +37,12 @@ export function useWebRTC(
     const [localHandRaised, setLocalHandRaised] = useState(false)
     const [reactions, setReactions] = useState<{ id: string, emoji: string, userId: string }[]>([])
 
+    const channelRef = useRef<RealtimeChannel | null>(null)
+    const audioContextRef = useRef<AudioContext | null>(null)
+    const videoElementRef = useRef<HTMLVideoElement | null>(null)
+    const originalMicTrackRef = useRef<MediaStreamTrack | null>(null)
+    const currentMixedTrackRef = useRef<MediaStreamTrack | null>(null)
+
     // Helper to add logs
     const addLog = (msg: string) => {
         console.log(`[WebRTC] ${msg}`)
@@ -93,6 +99,7 @@ export function useWebRTC(
                 }
 
                 setLocalStream(stream)
+                originalMicTrackRef.current = stream.getAudioTracks()[0]
                 joinChannel(stream)
             } catch (err: unknown) {
                 const error = err as Error
@@ -384,37 +391,67 @@ export function useWebRTC(
                 video: {
                     frameRate: 30
                 },
-                audio: false
+                audio: true // Enabled system audio share
             })
 
-            const screenTrack = screenStream.getVideoTracks()[0]
+            const screenVideoTrack = screenStream.getVideoTracks()[0]
+            const screenAudioTrack = screenStream.getAudioTracks()[0]
+
             const currentVideoTrack = localStream.getVideoTracks()[0]
+            const currentAudioTrack = localStream.getAudioTracks()[0]
 
-            addLog(`Screen share started. Track: ${screenTrack.id}`)
+            addLog(`Screen share started. Video: ${screenVideoTrack.id}, Audio: ${screenAudioTrack?.id || 'none'}`)
 
+            // Handle Video Replacement
             if (currentVideoTrack) {
-                currentVideoTrack.stop() // Stop camera to save resource
+                currentVideoTrack.stop()
                 localStream.removeTrack(currentVideoTrack)
             }
-            localStream.addTrack(screenTrack)
+            localStream.addTrack(screenVideoTrack)
 
-            // Replace track for all peers
+            // Handle Audio Mixing/Replacement
+            let finalAudioTrack = currentAudioTrack
+            if (screenAudioTrack) {
+                try {
+                    if (!audioContextRef.current) audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+                    const ctx = audioContextRef.current
+                    const dest = ctx.createMediaStreamDestination()
+
+                    if (currentAudioTrack) {
+                        const micSource = ctx.createMediaStreamSource(new MediaStream([currentAudioTrack]))
+                        micSource.connect(dest)
+                    }
+
+                    const systemSource = ctx.createMediaStreamSource(new MediaStream([screenAudioTrack]))
+                    systemSource.connect(dest)
+
+                    finalAudioTrack = dest.stream.getAudioTracks()[0]
+                    addLog("Mixed microphone with system audio.")
+                } catch (e) {
+                    console.warn("Failed to mix audio, using only microphone:", e)
+                }
+            }
+
+            // Replace tracks for all peers
             peersRef.current.forEach((peerData, peerId) => {
                 if (peerData.peer && !peerData.peer.destroyed) {
-                    addLog(`Replacing track for peer ${peerId}`)
                     try {
                         if (currentVideoTrack) {
-                            peerData.peer.replaceTrack(currentVideoTrack, screenTrack, localStream)
+                            peerData.peer.replaceTrack(currentVideoTrack, screenVideoTrack, localStream)
                         } else {
-                            peerData.peer.addTrack(screenTrack, localStream)
+                            peerData.peer.addTrack(screenVideoTrack, localStream)
+                        }
+
+                        if (screenAudioTrack && currentAudioTrack && finalAudioTrack) {
+                            peerData.peer.replaceTrack(currentAudioTrack, finalAudioTrack, localStream)
                         }
                     } catch (e) {
-                        console.error(`Failed to replace track for peer ${peerId}`, e)
+                        console.error(`Failed to replace tracks for peer ${peerId}`, e)
                     }
                 }
             })
 
-            screenTrack.onended = () => {
+            screenVideoTrack.onended = () => {
                 addLog("Screen share ended by browser UI.")
                 stopScreenShare(onEnd)
             }
@@ -423,7 +460,89 @@ export function useWebRTC(
         } catch (err) {
             console.error("Error sharing screen:", err)
             addLog(`Error sharing screen: ${err}`)
-            onEnd?.() // Reset UI state if failed
+            onEnd?.()
+        }
+    }
+
+    const shareVideoFile = async (file: File, onEnd?: () => void) => {
+        try {
+            if (!localStream) return
+
+            addLog(`Starting local video share: ${file.name}`)
+
+            const video = document.createElement('video')
+            video.src = URL.createObjectURL(file)
+            video.muted = true // Prevents feedback loop if played locally
+            video.loop = false
+            videoElementRef.current = video
+
+            await video.play()
+
+            // captureStream is a non-standard but widely supported API
+            const mediaStream = (video as any).captureStream ? (video as any).captureStream() : (video as any).mozCaptureStream()
+
+            const fileVideoTrack = mediaStream.getVideoTracks()[0]
+            const fileAudioTrack = mediaStream.getAudioTracks()[0]
+
+            const currentVideoTrack = localStream.getVideoTracks()[0]
+            const currentAudioTrack = localStream.getAudioTracks()[0]
+
+            // Handle Video Replacement
+            if (currentVideoTrack) {
+                currentVideoTrack.stop()
+                localStream.removeTrack(currentVideoTrack)
+            }
+            localStream.addTrack(fileVideoTrack)
+
+            // Handle Audio Mixing (Mic + Video)
+            let finalAudioTrack = currentAudioTrack
+            if (fileAudioTrack) {
+                try {
+                    if (!audioContextRef.current) audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+                    const ctx = audioContextRef.current
+                    const dest = ctx.createMediaStreamDestination()
+
+                    if (currentAudioTrack) {
+                        const micSource = ctx.createMediaStreamSource(new MediaStream([currentAudioTrack]))
+                        micSource.connect(dest)
+                    }
+
+                    const videoSource = ctx.createMediaStreamSource(new MediaStream([fileAudioTrack]))
+                    const videoGain = ctx.createGain()
+                    videoGain.gain.value = 0.8 // Default volume for video
+                    videoSource.connect(videoGain)
+                    videoGain.connect(dest)
+
+                    finalAudioTrack = dest.stream.getAudioTracks()[0]
+                    addLog("Mixed microphone with video file audio.")
+                } catch (e) {
+                    console.warn("Failed to mix video audio, using only microphone:", e)
+                }
+            }
+
+            // Sync with Peers
+            peersRef.current.forEach((peerData, peerId) => {
+                if (peerData.peer && !peerData.peer.destroyed) {
+                    try {
+                        peerData.peer.replaceTrack(currentVideoTrack, fileVideoTrack, localStream)
+                        if (fileAudioTrack && currentAudioTrack && finalAudioTrack) {
+                            peerData.peer.replaceTrack(currentAudioTrack, finalAudioTrack, localStream)
+                        }
+                    } catch (e) {
+                        console.error(`Failed to replace tracks for peer ${peerId}`, e)
+                    }
+                }
+            })
+
+            video.onended = () => {
+                addLog("Video file ended.")
+                stopScreenShare(onEnd) // Recursively use stopScreenShare as it handles cleanup
+            }
+
+        } catch (err) {
+            console.error("Error sharing video file:", err)
+            addLog(`Error sharing video file: ${err}`)
+            onEnd?.()
         }
     }
 
@@ -432,12 +551,23 @@ export function useWebRTC(
             if (!localStream) return
             addLog("Stopping screen share, reverting to camera...")
 
-            const screenTrack = localStream.getVideoTracks()[0]
-            if (screenTrack) {
-                screenTrack.stop()
-                localStream.removeTrack(screenTrack)
+            const screenVideoTrack = localStream.getVideoTracks()[0]
+            const currentAudioTrack = localStream.getAudioTracks()[0]
+
+            if (screenVideoTrack) {
+                screenVideoTrack.stop()
+                localStream.removeTrack(screenVideoTrack)
             }
 
+            // Cleanup Video Element
+            if (videoElementRef.current) {
+                videoElementRef.current.pause()
+                videoElementRef.current.src = ""
+                videoElementRef.current.load()
+                videoElementRef.current = null
+            }
+
+            // Restore Camera
             const constraints = {
                 video: currentVideoDeviceId.current ? { deviceId: { exact: currentVideoDeviceId.current } } : true,
                 audio: false
@@ -445,18 +575,33 @@ export function useWebRTC(
             const cameraStream = await navigator.mediaDevices.getUserMedia(constraints)
             const cameraTrack = cameraStream.getVideoTracks()[0]
 
+            // Restore Audio Track
+            const micTrack = originalMicTrackRef.current
+
             if (cameraTrack) {
                 localStream.addTrack(cameraTrack)
-                // Replace track back for all peers
-                peersRef.current.forEach((peerData, peerId) => {
-                    if (peerData.peer && !peerData.peer.destroyed) {
-                        try {
-                            peerData.peer.replaceTrack(screenTrack, cameraTrack, localStream)
-                        } catch (e) {
-                            console.error(`Failed to revert track for peer ${peerId}`, e)
+            }
+
+            // Replace tracks for all peers
+            peersRef.current.forEach((peerData, peerId) => {
+                if (peerData.peer && !peerData.peer.destroyed) {
+                    try {
+                        if (screenVideoTrack && cameraTrack) {
+                            peerData.peer.replaceTrack(screenVideoTrack, cameraTrack, localStream)
                         }
+                        if (currentAudioTrack && micTrack && currentAudioTrack !== micTrack) {
+                            peerData.peer.replaceTrack(currentAudioTrack, micTrack, localStream)
+                        }
+                    } catch (e) {
+                        console.error(`Failed to revert tracks for peer ${peerId}`, e)
                     }
-                })
+                }
+            })
+
+            // Update local stream audio if it was changed
+            if (micTrack && currentAudioTrack !== micTrack) {
+                localStream.removeTrack(currentAudioTrack)
+                localStream.addTrack(micTrack)
             }
 
             callback?.()
@@ -494,6 +639,10 @@ export function useWebRTC(
                 localStream.removeTrack(oldTrack)
             }
             localStream.addTrack(newTrack)
+
+            if (kind === 'audio') {
+                originalMicTrackRef.current = newTrack
+            }
 
             // Update Peers
             peersRef.current.forEach(({ peer }) => {
@@ -550,6 +699,7 @@ export function useWebRTC(
         stopScreenShare,
         switchDevice,
         sendEmoji,
+        shareVideoFile,
         toggleHand,
         updateMetadata,
         localHandRaised,
