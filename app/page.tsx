@@ -3,10 +3,10 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
-  Shield,
-  Infinity,
-  Globe,
-  FileCheck,
+  Disc,
+  Mic,
+  Video,
+  Users,
   CheckCircle2,
   ArrowRight,
   PlayCircle
@@ -192,10 +192,10 @@ export default function LandingPage() {
           <div className="container mx-auto px-6">
             <div className="text-left mb-16">
               <div className="text-xs font-bold text-cyan-500 uppercase tracking-[0.2em] mb-4">
-                Enterprise Grade
+                Platform Features
               </div>
               <h2 className="text-4xl md:text-5xl font-bold text-white">
-                {t('landing.features_title') || 'Pilares Enterprise'}
+                {t('landing.features_title') || 'Funcionalidades da Plataforma'}
               </h2>
             </div>
 
@@ -203,7 +203,7 @@ export default function LandingPage() {
               {/* Card 1 */}
               <div className="group p-8 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all duration-500 hover:-translate-y-2 hover:border-cyan-500/30">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-                  <Shield className="w-6 h-6 text-cyan-400" />
+                  <Video className="w-6 h-6 text-cyan-400" />
                 </div>
                 <h3 className="text-xl font-bold mb-3 text-white group-hover:text-cyan-400 transition-colors">
                   {t('landing.feature_1_title')}
@@ -216,7 +216,7 @@ export default function LandingPage() {
               {/* Card 2 */}
               <div className="group p-8 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all duration-500 hover:-translate-y-2 hover:border-cyan-500/30">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-                  <Infinity className="w-6 h-6 text-purple-400" />
+                  <Mic className="w-6 h-6 text-purple-400" />
                 </div>
                 <h3 className="text-xl font-bold mb-3 text-white group-hover:text-purple-400 transition-colors">
                   {t('landing.feature_2_title')}
@@ -229,7 +229,7 @@ export default function LandingPage() {
               {/* Card 3 */}
               <div className="group p-8 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all duration-500 hover:-translate-y-2 hover:border-cyan-500/30">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-                  <Globe className="w-6 h-6 text-amber-400" />
+                  <Disc className="w-6 h-6 text-amber-400" />
                 </div>
                 <h3 className="text-xl font-bold mb-3 text-white group-hover:text-amber-400 transition-colors">
                   {t('landing.feature_3_title')}
@@ -242,7 +242,7 @@ export default function LandingPage() {
               {/* Card 4 */}
               <div className="group p-8 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all duration-500 hover:-translate-y-2 hover:border-cyan-500/30">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-green-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-                  <FileCheck className="w-6 h-6 text-emerald-400" />
+                  <Users className="w-6 h-6 text-emerald-400" />
                 </div>
                 <h3 className="text-xl font-bold mb-3 text-white group-hover:text-emerald-400 transition-colors">
                   {t('landing.feature_4_title')}
@@ -255,23 +255,103 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* TRUST & AUTHORITY */}
-        <section className="py-24 bg-[#0a0f1e] border-y border-white/5">
-          <div className="container mx-auto px-6 text-center">
-            <div className="mb-12">
-              <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-2">Designed by</h4>
-              <div className="text-2xl font-bold text-white flex items-center justify-center gap-3">
-                <span className="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center text-xs font-bold ring-2 ring-blue-500/20">IB</span>
-                <span>Interpret Brasil</span>
-              </div>
+        {/* PRICING SECTION */}
+        <section id="pricing" className="py-24 bg-[#0a0f1e] border-t border-white/5">
+          <div className="container mx-auto px-6">
+            <div className="text-center mb-16 space-y-4">
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white">
+                {t('landing.pricing_title') || 'Escolha seu Plano'}
+              </h2>
+              <p className="text-gray-400 max-w-2xl mx-auto text-lg">
+                {t('landing.pricing_subtitle') || 'Transparente. Sem surpresas.'}
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
-              {/* Mock Logos - Replace with real SVGs if available */}
-              <div className="h-12 flex items-center justify-center font-bold text-xl">GLOBAL CORP</div>
-              <div className="h-12 flex items-center justify-center font-bold text-xl">LITIGATION LLC</div>
-              <div className="h-12 flex items-center justify-center font-bold text-xl">SUMMIT INC</div>
-              <div className="h-12 flex items-center justify-center font-bold text-xl">WORLD FORUM</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {/* Monthly Plan */}
+              <div className="relative p-8 rounded-3xl border border-white/5 bg-[#020817] hover:border-white/20 transition-all flex flex-col">
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold text-gray-400 mb-2">{t('landing.plan_monthly_name')}</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white">{t('landing.plan_monthly_price')}</span>
+                    <span className="text-sm text-gray-500">{t('landing.plan_monthly_period')}</span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-4 h-10">{t('landing.plan_monthly_desc')}</p>
+                </div>
+                <ul className="space-y-4 mb-8 flex-1">
+                  {[t('landing.plan_feature_1'), t('landing.plan_feature_2'), t('landing.plan_feature_3')].map((feature, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm text-gray-300">
+                      <CheckCircle2 className="w-5 h-5 text-gray-600 flex-shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Button className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10">
+                  {t('landing.button_subscribe')}
+                </Button>
+              </div>
+
+              {/* Quarterly Plan */}
+              <div className="relative p-8 rounded-3xl border border-cyan-500/30 bg-[#020817] shadow-[0_0_50px_rgba(6,182,212,0.05)] hover:border-cyan-500/50 transition-all transform md:-translate-y-4 flex flex-col z-10">
+                <div className="absolute top-0 right-0 bg-cyan-500 text-[#020817] text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-2xl">
+                  POPULAR
+                </div>
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold text-cyan-400 mb-2">{t('landing.plan_quarterly_name')}</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-5xl font-bold text-white">{t('landing.plan_quarterly_price')}</span>
+                    <span className="text-sm text-gray-500">{t('landing.plan_quarterly_period')}</span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-4 h-10">{t('landing.plan_quarterly_desc')}</p>
+                </div>
+                <ul className="space-y-4 mb-8 flex-1">
+                  {[t('landing.plan_feature_1'), t('landing.plan_feature_2'), t('landing.plan_feature_3'), t('landing.plan_feature_4')].map((feature, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm text-white">
+                      <CheckCircle2 className="w-5 h-5 text-cyan-500 flex-shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Button className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg">
+                  {t('landing.button_subscribe')}
+                </Button>
+              </div>
+
+              {/* Yearly Plan */}
+              <div className="relative p-8 rounded-3xl border border-white/5 bg-[#020817] hover:border-white/20 transition-all flex flex-col">
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold text-gray-400 mb-2">{t('landing.plan_yearly_name')}</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white">{t('landing.plan_yearly_price')}</span>
+                    <span className="text-sm text-gray-500">{t('landing.plan_yearly_period')}</span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-4 h-10">{t('landing.plan_yearly_desc')}</p>
+                </div>
+                <ul className="space-y-4 mb-8 flex-1">
+                  {[t('landing.plan_feature_1'), t('landing.plan_feature_2') + ' Pro', t('landing.plan_feature_3') + ' Unlim.', t('landing.plan_feature_4')].map((feature, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm text-gray-300">
+                      <CheckCircle2 className="w-5 h-5 text-gray-600 flex-shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Button className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10">
+                  {t('landing.button_subscribe')}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* TRUST & AUTHORITY */}
+        <section className="py-24 bg-[#0a0f1e]">
+          <div className="container mx-auto px-6 text-center">
+            <div className="mb-12">
+              <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-2">Powering</h4>
+              <div className="text-2xl font-bold text-white flex items-center justify-center gap-3">
+                <span className="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center text-xs font-bold ring-2 ring-blue-500/20">IB</span>
+                <span>{t('landing.authority_ib')}</span>
+              </div>
             </div>
           </div>
         </section>
@@ -281,22 +361,22 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-[#020817] to-blue-950/20" />
           <div className="container mx-auto px-6 relative z-10 text-center">
             <h2 className="text-4xl md:text-6xl font-bold mb-8 text-white tracking-tight">
-              Pronto para o próximo nível?
+              {t('landing.hero_title_2')}
             </h2>
             <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-              O acesso à plataforma TalkTube Enterprise é exclusivo. Agende uma conversa com nossos engenheiros de solução.
+              {t('landing.hero_subtitle')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button size="lg" className="h-16 px-10 text-lg bg-white text-[#020817] hover:bg-gray-100 rounded-full font-bold shadow-2xl hover:shadow-[0_0_50px_rgba(255,255,255,0.2)] transition-all transform hover:-translate-y-1">
-                {t('landing.cta_demo')}
+                {t('landing.get_started')}
               </Button>
               <span className="text-sm text-gray-500 px-4">ou</span>
-              <Link href="/signup" className="text-gray-400 hover:text-white underline underline-offset-4 decoration-gray-700 transition-colors">
-                Iniciar Trial Limitado
+              <Link href="/login" className="text-gray-400 hover:text-white underline underline-offset-4 decoration-gray-700 transition-colors">
+                {t('landing.login')}
               </Link>
             </div>
             <p className="mt-12 text-xs text-gray-600 uppercase tracking-widest">
-              {t('footer_copyright') || '© 2024 TalkTube Enterprise. Secured by Post-Quantum Encryption.'}
+              {t('landing.footer_copyright')}
             </p>
           </div>
         </section>
