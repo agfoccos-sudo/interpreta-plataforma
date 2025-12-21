@@ -12,7 +12,8 @@ import {
     LogOut,
     Video,
     BarChart3,
-    MessageSquare
+    MessageSquare,
+    Megaphone
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ModeToggle } from './mode-toggle'
@@ -63,6 +64,11 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
             label: 'Salas e Reuniões',
             icon: Video,
             href: '/admin/meetings',
+        },
+        {
+            label: 'Comunicados',
+            icon: Megaphone,
+            href: '/admin/messages',
         },
         {
             label: 'Logs de Auditoria',

@@ -11,11 +11,6 @@ import { createAnnouncement } from '@/app/admin/actions'
 import { createClient } from '@/lib/supabase/client'
 import { useEffect } from 'react'
 
-// Fetch announcements client side for simplicity in this prototype, or pass as props if server component
-// But since this is a page, we can make it a specific component. 
-// Actually, let's make the page.tsx a server component that fetches and passes data to a client component?
-// Or just use a client component for the form.
-
 export default function AdminMessagesPage() {
     const [loading, setLoading] = useState(false)
     const [messages, setMessages] = useState<any[]>([])
@@ -27,7 +22,7 @@ export default function AdminMessagesPage() {
             if (data) setMessages(data)
         }
         fetchMessages()
-    }, [loading]) // re-fetch when loading changes (after submit)
+    }, [loading])
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
@@ -36,37 +31,37 @@ export default function AdminMessagesPage() {
             alert(result.error)
         } else {
             alert('Comunicado enviado com sucesso!')
-            // Reset form? Hard with native action without ref.
+            // Ideally reset form here
         }
         setLoading(false)
     }
 
     return (
-        <div className="space-y-6">
-            <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-2">
-                <Megaphone className="h-8 w-8 text-[#06b6d4]" />
+        <div className="space-y-6 pt-8 px-8">
+            <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+                <Megaphone className="h-8 w-8 text-primary" />
                 Comunicados Globais
             </h1>
             <p className="text-muted-foreground">Envie mensagens importantes para todos os usuários da plataforma.</p>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Create Form */}
-                <Card className="lg:col-span-1 bg-[#0f172a] border-slate-800">
+                <Card className="lg:col-span-1 bg-card border-border">
                     <CardHeader>
-                        <CardTitle className="text-white">Novo Comunicado</CardTitle>
+                        <CardTitle className="text-card-foreground">Novo Comunicado</CardTitle>
                         <CardDescription>Aparecerá no painel de todos os usuários.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form action={handleSubmit} className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="title" className="text-white">Título</Label>
-                                <Input name="title" id="title" placeholder="Ex: Manutenção Programada" className="bg-slate-900 border-slate-700 text-white" required />
+                                <Label htmlFor="title" className="text-card-foreground">Título</Label>
+                                <Input name="title" id="title" placeholder="Ex: Manutenção Programada" className="bg-background border-input text-foreground" required />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="content" className="text-white">Mensagem</Label>
-                                <Textarea name="content" id="content" placeholder="Detalhes do aviso..." className="bg-slate-900 border-slate-700 text-white min-h-[150px]" required />
+                                <Label htmlFor="content" className="text-card-foreground">Mensagem</Label>
+                                <Textarea name="content" id="content" placeholder="Detalhes do aviso..." className="bg-background border-input text-foreground min-h-[150px]" required />
                             </div>
-                            <Button type="submit" disabled={loading} className="w-full bg-[#06b6d4] hover:bg-[#0891b2] font-bold text-white">
+                            <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90 font-bold text-primary-foreground">
                                 {loading ? 'Enviando...' : 'Publicar Agora'} <Send className="ml-2 h-4 w-4" />
                             </Button>
                         </form>
@@ -74,20 +69,20 @@ export default function AdminMessagesPage() {
                 </Card>
 
                 {/* List */}
-                <Card className="lg:col-span-2 bg-[#0f172a] border-slate-800">
+                <Card className="lg:col-span-2 bg-card border-border">
                     <CardHeader>
-                        <CardTitle className="text-white">Histórico de Envios</CardTitle>
+                        <CardTitle className="text-card-foreground">Histórico de Envios</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {messages.length === 0 ? (
                             <p className="text-muted-foreground text-sm italic">Nenhum comunicado enviado ainda.</p>
                         ) : (
                             messages.map(msg => (
-                                <div key={msg.id} className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex justify-between items-start">
+                                <div key={msg.id} className="p-4 rounded-xl bg-muted/30 border border-border flex justify-between items-start">
                                     <div>
-                                        <h4 className="font-bold text-white text-lg">{msg.title}</h4>
-                                        <p className="text-slate-400 text-sm mt-1 whitespace-pre-wrap">{msg.content}</p>
-                                        <span className="text-xs text-slate-600 mt-3 block">
+                                        <h4 className="font-bold text-foreground text-lg">{msg.title}</h4>
+                                        <p className="text-muted-foreground text-sm mt-1 whitespace-pre-wrap">{msg.content}</p>
+                                        <span className="text-xs text-muted-foreground/70 mt-3 block">
                                             Enviado em {new Date(msg.created_at).toLocaleDateString()} às {new Date(msg.created_at).toLocaleTimeString()}
                                         </span>
                                     </div>
