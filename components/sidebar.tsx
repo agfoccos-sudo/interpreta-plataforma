@@ -17,7 +17,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { ModeToggle } from './mode-toggle'
 import { Logo } from './logo'
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface SidebarProps {
@@ -78,13 +77,13 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
     ]
 
     return (
-        <div className="flex flex-col h-full bg-gradient-to-b from-[#1e3a8a] to-[#0f172a] text-white shadow-2xl overflow-hidden">
+        <div className="flex flex-col h-full bg-card border-r border-border dark:bg-gradient-to-b dark:from-[#1e3a8a] dark:to-[#0f172a] dark:border-none shadow-2xl overflow-hidden transition-colors duration-300">
             {/* Branding Header */}
             <div className="flex items-center justify-center p-6 pb-2">
                 <Logo className="scale-125" />
             </div>
 
-            <div className="text-center text-[10px] text-blue-200/50 uppercase tracking-[0.3em] font-bold mb-6">
+            <div className="text-center text-[10px] text-muted-foreground dark:text-blue-200/50 uppercase tracking-[0.3em] font-bold mb-6">
                 Video Conferencing
             </div>
 
@@ -92,7 +91,7 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
             <div className="flex-1 px-4 overflow-y-auto no-scrollbar">
                 <div className="space-y-4">
                     <div>
-                        <h3 className="mb-2 px-4 text-xs font-semibold text-blue-300/60 uppercase tracking-wider">
+                        <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground dark:text-blue-300/60 uppercase tracking-wider">
                             Menu Principal
                         </h3>
                         <div className="space-y-1">
@@ -105,12 +104,12 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
                                         className={cn(
                                             'text-sm group flex p-3 w-full justify-start font-medium cursor-pointer rounded-2xl transition-all relative',
                                             isActive
-                                                ? 'bg-white/10 text-white shadow-lg backdrop-blur-sm'
-                                                : 'text-blue-100/60 hover:text-white hover:bg-white/5'
+                                                ? 'bg-primary/10 text-primary dark:bg-white/10 dark:text-white shadow-lg backdrop-blur-sm'
+                                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground dark:text-blue-100/60 dark:hover:text-white dark:hover:bg-white/5'
                                         )}
                                     >
                                         <div className="flex items-center flex-1">
-                                            <route.icon className={cn('h-5 w-5 mr-3', isActive ? 'text-[#22d3ee]' : 'text-blue-300/50 group-hover:text-white')} />
+                                            <route.icon className={cn('h-5 w-5 mr-3', isActive ? 'text-primary dark:text-[#22d3ee]' : 'text-muted-foreground group-hover:text-foreground dark:text-blue-300/50 dark:group-hover:text-white')} />
                                             {route.label}
                                             {/* Badge */}
                                             {route.badge && route.badge > 0 && (
@@ -127,7 +126,7 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
 
                     {userRole === 'admin' && (
                         <div>
-                            <h3 className="mb-2 px-4 text-xs font-semibold text-blue-300/60 uppercase tracking-wider mt-6">
+                            <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground dark:text-blue-300/60 uppercase tracking-wider mt-6">
                                 Administração
                             </h3>
                             <div className="space-y-1">
@@ -140,12 +139,12 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
                                             className={cn(
                                                 'text-sm group flex p-3 w-full justify-start font-medium cursor-pointer rounded-2xl transition-all relative',
                                                 isActive
-                                                    ? 'bg-white/10 text-white shadow-lg backdrop-blur-sm'
-                                                    : 'text-blue-100/60 hover:text-white hover:bg-white/5'
+                                                    ? 'bg-primary/10 text-primary dark:bg-white/10 dark:text-white shadow-lg backdrop-blur-sm'
+                                                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground dark:text-blue-100/60 dark:hover:text-white dark:hover:bg-white/5'
                                             )}
                                         >
                                             <div className="flex items-center flex-1">
-                                                <route.icon className={cn('h-5 w-5 mr-3', isActive ? 'text-amber-400' : 'text-blue-300/50 group-hover:text-white')} />
+                                                <route.icon className={cn('h-5 w-5 mr-3', isActive ? 'text-primary dark:text-amber-400' : 'text-muted-foreground group-hover:text-foreground dark:text-blue-300/50 dark:group-hover:text-white')} />
                                                 {route.label}
                                             </div>
                                         </Link>
@@ -158,17 +157,17 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
             </div>
 
             {/* Footer / User Profile */}
-            <div className="p-4 bg-[#0f172a]/50 backdrop-blur-md border-t border-white/5 mx-4 mb-4 rounded-3xl mt-auto shadow-inner">
+            <div className="p-4 bg-muted/30 dark:bg-[#0f172a]/50 backdrop-blur-md border-t border-border dark:border-white/5 mx-4 mb-4 rounded-3xl mt-auto shadow-inner">
                 <div className="flex items-center gap-x-3 mb-4">
-                    <Avatar className="h-10 w-10 border-2 border-white/10 shadow-lg shadow-cyan-500/20">
+                    <Avatar className="h-10 w-10 border-2 border-background dark:border-white/10 shadow-lg shadow-cyan-500/20">
                         <AvatarImage src={userAvatar || ''} />
                         <AvatarFallback className="bg-gradient-to-tr from-[#22d3ee] to-blue-500 text-white font-bold">
                             {user.email?.[0].toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-bold text-white truncate max-w-[120px]">{user.email?.split('@')[0]}</span>
-                        <span className="text-[10px] text-blue-300/80 font-bold uppercase tracking-wider">
+                        <span className="text-sm font-bold text-foreground dark:text-white truncate max-w-[120px]">{user.email?.split('@')[0]}</span>
+                        <span className="text-[10px] text-muted-foreground dark:text-blue-300/80 font-bold uppercase tracking-wider">
                             {userRole === 'admin' ? 'Admin' : 'Usuário'}
                         </span>
                     </div>
@@ -177,7 +176,7 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
                     </div>
                 </div>
                 <form action="/auth/signout" method="post">
-                    <Button variant="ghost" className="w-full justify-center text-red-300/80 hover:text-red-200 hover:bg-red-500/20 rounded-xl font-bold text-xs h-8">
+                    <Button variant="ghost" className="w-full justify-center text-red-500 hover:text-red-600 hover:bg-red-500/10 dark:text-red-300/80 dark:hover:text-red-200 dark:hover:bg-red-500/20 rounded-xl font-bold text-xs h-8">
                         <LogOut className="h-4 w-4 mr-2" />
                         Sair
                     </Button>
