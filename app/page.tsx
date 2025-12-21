@@ -1,5 +1,6 @@
 'use client'
 
+import { Logo } from "@/components/logo"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Globe, Mic, Users, Zap, Shield, Sparkles, MonitorSmartphone } from "lucide-react"
@@ -44,12 +45,7 @@ export default function Home() {
               animate={{ opacity: 1, x: 0 }}
               className="flex items-center gap-2"
             >
-              <div className="w-10 h-10 bg-gradient-to-tr from-[#06b6d4] to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-[#06b6d4]/20">
-                <Mic className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-2xl font-black tracking-tighter italic text-foreground">
-                Interpreta<span className="text-[#06b6d4]">.ai</span>
-              </span>
+              <Logo className="scale-125" />
             </motion.div>
 
             <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground uppercase tracking-widest text-[10px]">
@@ -232,12 +228,7 @@ export default function Home() {
         <footer className="py-20 border-t border-border bg-card">
           <div className="container mx-auto px-6 flex flex-col items-center gap-12">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#06b6d4] rounded-lg flex items-center justify-center">
-                <Mic className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-black tracking-tighter text-foreground">
-                Interpreta<span className="text-[#06b6d4]">.ai</span>
-              </span>
+              <Logo className="scale-125" />
             </div>
 
             <div className="flex gap-8 text-[10px] text-muted-foreground font-black uppercase tracking-widest">

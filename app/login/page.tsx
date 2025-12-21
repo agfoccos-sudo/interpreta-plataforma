@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState } from 'react'
@@ -9,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AlertCircle, Loader2 } from 'lucide-react'
+import { Logo } from '@/components/logo'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
@@ -45,10 +45,8 @@ export default function LoginPage() {
             <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
 
             <div className="w-full max-w-md space-y-8 relative z-10 bg-white/5 backdrop-blur-lg p-8 rounded-2xl border border-white/10 shadow-2xl">
-                <div className="text-center">
-                    <h2 className="text-3xl font-black tracking-tighter text-white italic">
-                        Interpreta<span className="text-[#06b6d4]">.ai</span>
-                    </h2>
+                <div className="text-center flex flex-col items-center">
+                    <Logo className="scale-150 mb-4" />
                     <p className="mt-2 text-sm text-gray-400">
                         Acesse sua conta para continuar
                     </p>
