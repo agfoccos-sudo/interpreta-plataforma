@@ -32,15 +32,26 @@ export const dictionaries = {
             video_conferencing: "Videoconferência"
         },
         landing: {
-            hero_title_1: "Quebrando Barreiras",
-            hero_title_2: "De Idiomas",
-            hero_subtitle: "Reuniões globais com interpretação simultânea e transparência total. Conecte-se com o mundo sem limites.",
-            get_started: "Começar Agora",
-            learn_more: "Saiba Mais",
-            features: "Recursos",
-            pricing: "Preços",
-            about: "Sobre",
-            login: "Entrar"
+            hero_title_1: "Liderança Global",
+            hero_title_2: "Sem Fronteiras",
+            hero_subtitle: "A primeira plataforma de videoconferência desenhada para fechar negócios globais. Elimine o atrito linguístico em negociações críticas com interpretação simultânea nativa.",
+            cta_demo: "Solicitar Demonstração Privada",
+            cta_specialist: "Falar com Especialista",
+            tech_section_title: "Tecnologia Invisível, Resultado Visível",
+            tech_section_desc: "Infraestrutura P2P dedicada que garante latência zero na interpretação e qualidade de transmissão 4K adaptativa.",
+            features_title: "Pilares Enterprise",
+            feature_1_title: "Soberania de Dados",
+            feature_1_desc: "Criptografia de ponta a ponta e arquitetura P2P. Seus dados não passam por servidores de terceiros.",
+            feature_2_title: "Interpretação Nativa",
+            feature_2_desc: "Canais de áudio discretos e roteamento inteligente. Troque de idioma sem perder o ritmo da negociação.",
+            feature_3_title: "White-Label",
+            feature_3_desc: "Personalização total. A sala de reunião carrega a sua marca, não a da plataforma.",
+            feature_4_title: "Auditoria & Compliance",
+            feature_4_desc: "Logs imutáveis de acesso e ações. Rastreabilidade completa para segurança jurídica.",
+            authority_ib: "Um produto desenvolvido pela IB – Interpret Brasil",
+            footer_copyright: "© 2024 TalkTube. Todos os direitos reservados.",
+            login: "Área do Cliente",
+            get_started: "Simular Setup"
         }
     },
     en: {
@@ -73,15 +84,26 @@ export const dictionaries = {
             video_conferencing: "Video Conferencing"
         },
         landing: {
-            hero_title_1: "Breaking Language",
-            hero_title_2: "Barriers",
-            hero_subtitle: "Global meetings with simultaneous interpretation and full transparency. Connect with the world without limits.",
-            get_started: "Get Started",
-            learn_more: "Learn More",
-            features: "Features",
-            pricing: "Pricing",
-            about: "About",
-            login: "Login"
+            hero_title_1: "Global Leadership",
+            hero_title_2: "Without Borders",
+            hero_subtitle: "The first video conferencing platform designed to close global deals. Eliminate language friction in critical negotiations with native simultaneous interpretation.",
+            cta_demo: "Request Private Demo",
+            cta_specialist: "Talk to Specialist",
+            tech_section_title: "Invisible Technology, Visible Results",
+            tech_section_desc: "Dedicated P2P infrastructure ensuring zero-latency interpretation and adaptive 4K transmission quality.",
+            features_title: "Enterprise Pillars",
+            feature_1_title: "Data Sovereignty",
+            feature_1_desc: "End-to-end encryption and P2P architecture. Your data never touches third-party servers.",
+            feature_2_title: "Native Interpretation",
+            feature_2_desc: "Discrete audio channels and intelligent routing. Switch languages without losing the negotiation rhythm.",
+            feature_3_title: "White-Label",
+            feature_3_desc: "Total customization. The meeting room carries your brand, not the platform's.",
+            feature_4_title: "Audit & Compliance",
+            feature_4_desc: "Immutable access and action logs. Complete traceability for legal security.",
+            authority_ib: "A product developed by IB – Interpret Brasil",
+            footer_copyright: "© 2024 TalkTube. All rights reserved.",
+            login: "Client Area",
+            get_started: "Simulate Setup"
         }
     },
     es: {
@@ -114,15 +136,26 @@ export const dictionaries = {
             video_conferencing: "Videoconferencia"
         },
         landing: {
-            hero_title_1: "Rompiendo Barreras",
-            hero_title_2: "Del Idioma",
-            hero_subtitle: "Reuniones globales con interpretación simultánea y total transparencia. Conéctate con el mundo sin límites.",
-            get_started: "Comenzar Ahora",
-            learn_more: "Saber Más",
-            features: "Características",
-            pricing: "Precios",
-            about: "Sobre Nosotros",
-            login: "Ingresar"
+            hero_title_1: "Liderazgo Global",
+            hero_title_2: "Sin Fronteras",
+            hero_subtitle: "La primera plataforma de videoconferencia diseñada para cerrar negocios globales. Elimine la fricción lingüística en negociaciones críticas con interpretación simultánea nativa.",
+            cta_demo: "Solicitar Demo Privada",
+            cta_specialist: "Hablar con Especialista",
+            tech_section_title: "Tecnología Invisible, Resultados Visibles",
+            tech_section_desc: "Infraestructura P2P dedicada que garantiza latencia cero en la interpretación y calidad de transmisión adaptativa 4K.",
+            features_title: "Pilares Enterprise",
+            feature_1_title: "Soberanía de Datos",
+            feature_1_desc: "Cifrado de extremo a extremo y arquitectura P2P. Sus datos no pasan por servidores de terceros.",
+            feature_2_title: "Interpretación Nativa",
+            feature_2_desc: "Canales de audio discretos y enrutamiento inteligente. Cambie de idioma sin perder el ritmo de la negociación.",
+            feature_3_title: "Marca Blanca",
+            feature_3_desc: "Personalización total. La sala de reuniones lleva su marca, no la de la plataforma.",
+            feature_4_title: "Auditoría y Cumplimiento",
+            feature_4_desc: "Registros inmutables de acceso y acciones. Trazabilidad completa para seguridad jurídica.",
+            authority_ib: "Un producto desarrollado por IB – Interpret Brasil",
+            footer_copyright: "© 2024 TalkTube. Todos los derechos reservados.",
+            login: "Área de Clientes",
+            get_started: "Simular Configuración"
         }
     }
 }
