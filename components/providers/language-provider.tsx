@@ -1,0 +1,64 @@
+
+'use client'
+
+import React, { createContext, useContext, useState, useEffect } from 'react'
+import { dictionaries, Locale } from '@/lib/i18n/dictionaries'
+
+type Dictionary = typeof dictionaries['pt']
+
+interface LanguageContextType {
+    language: Locale
+    setLanguage: (lang: Locale) => void
+    t: (key: string) => string
+    dictionary: Dictionary
+}
+
+const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+    const [language, setLanguageState] = useState<Locale>('pt')
+
+    useEffect(() => {
+        // Try to load from localStorage
+        const saved = localStorage.getItem('app_language') as Locale
+        if (saved && ['pt', 'en', 'es'].includes(saved)) {
+            setLanguageState(saved)
+        }
+    }, [])
+
+    const setLanguage = (lang: Locale) => {
+        setLanguageState(lang)
+        localStorage.setItem('app_language', lang)
+    }
+
+    // Helper to get nested translation safely
+    // Key format: 'category.key' e.g. 'sidebar.dashboard'
+    const t = (key: string): string => {
+        const keys = key.split('.')
+        let current: any = dictionaries[language]
+
+        for (const k of keys) {
+            if (current[k] === undefined) {
+                console.warn(`Missing translation for key: ${key} in language: ${language}`)
+                return key // Fallback to key name
+            }
+            current = current[k]
+        }
+
+        return typeof current === 'string' ? current : key
+    }
+
+    return (
+        <LanguageContext.Provider value={{ language, setLanguage, t, dictionary: dictionaries[language] }}>
+            {children}
+        </LanguageContext.Provider>
+    )
+}
+
+export function useLanguage() {
+    const context = useContext(LanguageContext)
+    if (context === undefined) {
+        throw new Error('useLanguage must be used within a LanguageProvider')
+    }
+    return context
+}

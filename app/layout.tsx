@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 
 import { WebRTCPolyfills } from '@/components/webrtc-polyfills'
 import { ToastProvider } from '@/components/providers/toast-provider'
+import { LanguageProvider } from '@/components/providers/language-provider'
 
 export default function RootLayout({
   children,
@@ -39,7 +40,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <LanguageProvider>
+            {children}
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

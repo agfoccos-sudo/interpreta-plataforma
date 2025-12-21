@@ -19,6 +19,8 @@ import { Button } from '@/components/ui/button'
 import { ModeToggle } from './mode-toggle'
 import { Logo } from './logo'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useLanguage } from './providers/language-provider'
+import { LanguageSwitcher } from './language-switcher'
 
 interface SidebarProps {
     user: { email?: string }
@@ -29,26 +31,27 @@ interface SidebarProps {
 
 export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }: SidebarProps) {
     const pathname = usePathname()
+    const { t } = useLanguage()
 
     const routes = [
         {
-            label: 'Dashboard',
+            label: t('sidebar.dashboard'),
             icon: LayoutDashboard,
             href: '/dashboard',
         },
         {
-            label: 'Agenda',
+            label: t('sidebar.agenda'),
             icon: Calendar,
             href: '/dashboard/agenda',
         },
         {
-            label: 'Mensagens',
+            label: t('sidebar.messages'),
             icon: MessageSquare,
             href: '/dashboard/messages',
             badge: unreadMessagesCount
         },
         {
-            label: 'Configurações',
+            label: t('sidebar.settings'),
             icon: Settings,
             href: '/dashboard/settings',
         },
@@ -56,27 +59,27 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
 
     const adminRoutes = [
         {
-            label: 'Gestão de Usuários',
+            label: t('sidebar.users'),
             icon: Users,
             href: '/admin/users',
         },
         {
-            label: 'Salas e Reuniões',
+            label: t('sidebar.meetings'),
             icon: Video,
             href: '/admin/meetings',
         },
         {
-            label: 'Comunicados',
+            label: t('sidebar.announcements'),
             icon: Megaphone,
             href: '/admin/messages',
         },
         {
-            label: 'Logs de Auditoria',
+            label: t('sidebar.audit_logs'),
             icon: Shield,
             href: '/admin/security/audit',
         },
         {
-            label: 'Relatórios',
+            label: t('sidebar.reports'),
             icon: BarChart3,
             href: '/admin/reports',
         },
@@ -90,7 +93,7 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
             </div>
 
             <div className="text-center text-[10px] text-muted-foreground dark:text-blue-200/50 uppercase tracking-[0.3em] font-bold mb-6">
-                Video Conferencing
+                {t('sidebar.video_conferencing')}
             </div>
 
             {/* Navigation */}
@@ -98,7 +101,7 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
                 <div className="space-y-4">
                     <div>
                         <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground dark:text-blue-300/60 uppercase tracking-wider">
-                            Menu Principal
+                            {t('sidebar.main_menu')}
                         </h3>
                         <div className="space-y-1">
                             {routes.map((route) => {
@@ -133,7 +136,7 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
                     {userRole === 'admin' && (
                         <div>
                             <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground dark:text-blue-300/60 uppercase tracking-wider mt-6">
-                                Administração
+                                {t('sidebar.administration')}
                             </h3>
                             <div className="space-y-1">
                                 {adminRoutes.map((route) => {
@@ -177,14 +180,17 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
                             {userRole === 'admin' ? 'Admin' : 'Usuário'}
                         </span>
                     </div>
-                    <div className="ml-auto">
-                        <ModeToggle />
-                    </div>
                 </div>
+
+                <div className="flex items-center justify-between mb-4 gap-2">
+                    <LanguageSwitcher />
+                    <ModeToggle />
+                </div>
+
                 <form action="/auth/signout" method="post">
                     <Button variant="ghost" className="w-full justify-center text-red-500 hover:text-red-600 hover:bg-red-500/10 dark:text-red-300/80 dark:hover:text-red-200 dark:hover:bg-red-500/20 rounded-xl font-bold text-xs h-8">
                         <LogOut className="h-4 w-4 mr-2" />
-                        Sair
+                        {t('sidebar.signout')}
                     </Button>
                 </form>
             </div>
