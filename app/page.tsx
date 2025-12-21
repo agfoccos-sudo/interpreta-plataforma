@@ -12,6 +12,12 @@ import {
   ArrowRight,
   PlayCircle
 } from 'lucide-react'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import { Logo } from '@/components/logo'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { useLanguage } from '@/components/providers/language-provider'
@@ -409,6 +415,48 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* USE CASES */}
+        <section className="py-24 bg-[#0a0f1e]/50 border-t border-white/5">
+          <div className="container mx-auto px-6">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('landing.use_cases_title') || 'Casos de Uso'}</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-[#020817] p-8 rounded-2xl border border-white/5 hover:border-cyan-500/30 transition-colors">
+                  <div className="w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center mb-6">
+                    <CheckCircle2 className="w-6 h-6 text-cyan-400" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-3">{t(`landing.use_case_${i}_title` as any)}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{t(`landing.use_case_${i}_desc` as any)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ SECTION */}
+        <section className="py-24 bg-[#020817] border-t border-white/5">
+          <div className="container mx-auto px-6 max-w-3xl">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('landing.faq_title') || 'Perguntas Frequentes'}</h2>
+            </div>
+
+            <Accordion type="single" collapsible className="w-full">
+              {[1, 2, 3, 4].map((i) => (
+                <AccordionItem key={i} value={`item-${i}`} className="border-white/10">
+                  <AccordionTrigger className="text-lg hover:text-cyan-400 hover:no-underline text-left">
+                    {t(`landing.faq_${i}_q` as any)}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-gray-400 leading-relaxed text-base pb-6">
+                    {t(`landing.faq_${i}_a` as any)}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </section>
+
         {/* FINAL CTA */}
         <section className="py-32 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-[#020817] to-blue-950/20" />
@@ -434,6 +482,23 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "TalkTube Enterprise",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Browser",
+            "offers": {
+              "@type": "AggregateOffer",
+              "lowPrice": "197.00",
+              "priceCurrency": "BRL"
+            }
+          })
+        }}
+      />
     </div>
   )
 }

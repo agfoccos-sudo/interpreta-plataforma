@@ -73,7 +73,27 @@ export const dictionaries = {
             authority_ib: "Tecnologia IB – Interpret Brasil",
             footer_copyright: "© 2024 TalkTube. Todos os direitos reservados.",
             login: "Entrar",
-            get_started: "Criar Conta"
+            get_started: "Criar Conta",
+
+            // Use Cases
+            use_cases_title: "Casos de Uso",
+            use_case_1_title: "Reuniões de Conselho",
+            use_case_1_desc: "Segurança de nível bancário para decisões críticas multilíngues.",
+            use_case_2_title: "Webinars Globais",
+            use_case_2_desc: "Escala para audências massivas sem barreiras de idioma.",
+            use_case_3_title: "Treinamentos",
+            use_case_3_desc: "Garanta que sua equipe global entenda cada detalhe.",
+
+            // FAQ
+            faq_title: "Perguntas Frequentes",
+            faq_1_q: "Preciso instalar algum software?",
+            faq_1_a: "Não. O TalkTube roda 100% no navegador (Chrome, Edge, Safari, Firefox). Basta clicar no link.",
+            faq_2_q: "Funciona em conexões lentas?",
+            faq_2_a: "Sim. Nossa tecnologia ajusta a qualidade automaticamente para manter o áudio estável mesmo em 3G/4G.",
+            faq_3_q: "Como contrato intérpretes?",
+            faq_3_a: "Você pode trazer seus próprios intérpretes ou contratar através da nossa rede de parceiros certificados.",
+            faq_4_q: "Posso gravar a reunião?",
+            faq_4_a: "Sim! O sistema grava o vídeo e todas as faixas de áudio separadamente para edição flexível."
         }
     },
     en: {
