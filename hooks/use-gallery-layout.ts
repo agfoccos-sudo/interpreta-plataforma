@@ -9,7 +9,8 @@ interface LayoutParams {
 }
 
 export function useGalleryLayout(containerRef: RefObject<HTMLElement | null>, participantCount: number) {
-    const [layout, setLayout] = useState<LayoutParams>({ width: 0, height: 0, cols: 1, rows: 1, count: 0 })
+    // Start with a reasonable default to avoid flash of 0x0
+    const [layout, setLayout] = useState<LayoutParams>({ width: 320, height: 180, cols: 1, rows: 1, count: 0 })
 
     const calculateLayout = useCallback(() => {
         if (!containerRef.current || participantCount === 0) return

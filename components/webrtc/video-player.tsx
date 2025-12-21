@@ -88,6 +88,7 @@ function AudioMeter({ stream, onSpeakingChange }: { stream?: MediaStream | null,
 export function RemoteVideo({ stream, name = "Participante", role = "participant", volume = 1.0, micOff, cameraOff, handRaised, onSpeakingChange, connectionState = 'connected' }: VideoProps) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isSpeaking, setIsSpeaking] = useState(false)
+    const [isVideoReady, setIsVideoReady] = useState(false)
 
     useEffect(() => {
         if (videoRef.current) {
@@ -96,43 +97,56 @@ export function RemoteVideo({ stream, name = "Participante", role = "participant
     }, [volume])
 
     useEffect(() => {
-        if (!videoRef.current || !stream) return
+        const videoEl = videoRef.current
+        if (!videoEl || !stream) return
 
-        // Force reset source
-        videoRef.current.srcObject = null
+        // Force reset source to ensure browser detects change
+        videoEl.srcObject = null
+        setIsVideoReady(false)
 
-        // Small timeout to ensure DOM is ready and browser processed cleanup
+        // Small delay to clear buffer
         const timer = setTimeout(async () => {
-            if (!videoRef.current) return
+            if (!videoEl) return
+            videoEl.srcObject = stream
 
-            console.log(`[RemoteVideo] Attaching stream ${stream.id} to video element`)
-            videoRef.current.srcObject = stream
-
-            // Critical for iOS/Mobile: playsInline is already on prop, but we must call play()
             try {
-                await videoRef.current.play()
-                console.log(`[RemoteVideo] Playback started for ${stream.id}`)
-            } catch (e) {
-                console.error(`[RemoteVideo] Play failed for ${stream.id}:`, e)
-                // Retry muted if failed (browsers block unmuted autoplay)
-                if (videoRef.current) {
-                    videoRef.current.muted = true
-                    try {
-                        await videoRef.current.play()
-                        console.log(`[RemoteVideo] Muted playback started for ${stream.id}`)
-                    } catch (e2) {
-                        console.error(`[RemoteVideo] Muted play also failed for ${stream.id}:`, e2)
-                    }
+                // Ensure muted is false unless retry fails, but browsers require user gesture for unmuted
+                // However, in a call, usually audio context is already unlocked by user clicking 'Join'
+                videoEl.muted = false
+                await videoEl.play()
+                setIsVideoReady(true)
+                console.log(`[RemoteVideo] Play success for ${stream.id}`)
+            } catch (error) {
+                console.warn(`[RemoteVideo] Autoplay blocked for ${stream.id}, trying muted...`, error)
+                // Fallback: mute and play
+                videoEl.muted = true
+                try {
+                    await videoEl.play()
+                    setIsVideoReady(true)
+                    console.log(`[RemoteVideo] Muted play success for ${stream.id}`)
+                } catch (e2) {
+                    console.error(`[RemoteVideo] Play failed completely for ${stream.id}`, e2)
                 }
             }
         }, 100)
 
-        return () => clearTimeout(timer)
+        // Metadata load handler (just in case)
+        const handleMetadata = () => {
+            if (videoEl.paused) {
+                videoEl.play().catch(e => console.log("Metadata play attempt failed", e))
+            }
+        }
+        videoEl.addEventListener('loadedmetadata', handleMetadata)
+
+        return () => {
+            clearTimeout(timer)
+            videoEl.removeEventListener('loadedmetadata', handleMetadata)
+        }
     }, [stream])
 
     return (
         <div className={cn(
-            "bg-pink-500/20 rounded-[2.5rem] overflow-hidden relative border-4 transition-all duration-500 group w-full h-full shadow-2xl",
+            "bg-card rounded-[2.5rem] overflow-hidden relative border-4 transition-all duration-500 group w-full h-full shadow-2xl",
             isSpeaking
                 ? role === 'interpreter'
                     ? "border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.4)] scale-[1.02] z-10"
@@ -143,13 +157,21 @@ export function RemoteVideo({ stream, name = "Participante", role = "participant
                 <>
                     <video
                         ref={videoRef}
-                        autoPlay
                         playsInline
-                        muted={false} // Ensure it's not muted by default unless necessary, but handle carefully
-                        onPlay={() => console.log(`[RemoteVideo] Playing stream ${stream.id}`)}
-                        onError={(e) => console.error(`[RemoteVideo] Error playing stream ${stream.id}:`, e)}
-                        className="w-full h-full object-cover rounded-[2.3rem]"
+                        autoPlay
+                        className={cn(
+                            "w-full h-full object-cover rounded-[2.3rem]",
+                            // Use opacity to hide until ready or connected
+                            // If connectionState is failed, we show error UI below
+                            (isVideoReady || connectionState === 'connected') ? "opacity-100" : "opacity-0"
+                        )}
                     />
+
+                    {!isVideoReady && connectionState === 'connected' && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/50">
+                            <Globe className="h-8 w-8 text-[#06b6d4] animate-spin" />
+                        </div>
+                    )}
 
                     {/* Status Icons */}
                     <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
@@ -166,7 +188,7 @@ export function RemoteVideo({ stream, name = "Participante", role = "participant
                     </div>
 
                     {/* Bottom Info Bar */}
-                    <div className="absolute bottom-4 left-4 flex items-center gap-2">
+                    <div className="absolute bottom-4 left-4 flex items-center gap-2 z-30">
                         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 flex items-center gap-2">
                             <div className="bg-white/10 p-1 rounded-md">
                                 <User className="h-3 w-3 text-white" />
@@ -182,29 +204,6 @@ export function RemoteVideo({ stream, name = "Participante", role = "participant
                             setIsSpeaking(s)
                             onSpeakingChange?.(s)
                         }} />
-                    </div>
-
-                    {/* Debug Overlay */}
-                    <div className="absolute top-2 left-2 z-50 bg-black/50 text-[10px] text-green-400 font-mono p-1 rounded pointer-events-auto">
-                        <button
-                            className="bg-red-500 text-white px-2 py-1 rounded mb-1 hover:bg-red-600"
-                            onClick={() => {
-                                if (videoRef.current) {
-                                    videoRef.current.muted = false;
-                                    videoRef.current.play()
-                                        .then(() => alert("Started!"))
-                                        .catch(e => alert("Err: " + e));
-                                }
-                            }}
-                        >
-                            FORCE PLAY
-                        </button><br />
-                        D: {stream.id.slice(0, 4)}<br />
-                        A: {stream.getAudioTracks().length} | {stream.getAudioTracks()[0]?.enabled ? 'E' : 'D'} | {stream.getAudioTracks()[0]?.readyState}<br />
-                        V: {stream.getVideoTracks().length} | {stream.getVideoTracks()[0]?.enabled ? 'E' : 'D'} | {stream.getVideoTracks()[0]?.readyState}<br />
-                        S: {connectionState}<br />
-                        Vol: {volume}<br />
-                        Size: {videoRef.current?.videoWidth}x{videoRef.current?.videoHeight}
                     </div>
                 </>
             ) : (

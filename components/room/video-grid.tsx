@@ -107,10 +107,13 @@ export function VideoGrid({
                             <motion.div
                                 key={p.userId}
                                 layout
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.5 }}
                                 onClick={() => onSpeakerChange?.(p.userId)}
+                                style={{
+                                    // Ensure fallback size to prevent 0x0
+                                    minWidth: '200px',
+                                    minHeight: '112px'
+                                }}
                                 className={cn(
                                     "w-full h-full box-border cursor-pointer transition-transform active:scale-[0.98]",
                                     pinnedSpeakerId === p.userId && "ring-4 ring-amber-500 rounded-[2.5rem]"
