@@ -145,44 +145,96 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {/* Abstract Tech Graphic */}
-            <div className="relative h-[400px] w-full max-w-4xl mx-auto rounded-3xl border border-white/10 bg-[#050b1d] overflow-hidden group shadow-2xl">
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#020817] to-transparent" />
+            {/* Enhanced Tech Graphic - Interpretation Flow */}
+            <div className="relative h-[450px] w-full max-w-5xl mx-auto rounded-3xl border border-white/10 bg-[#050b1d] overflow-hidden group shadow-2xl flex items-center justify-center">
+              {/* World Map Background Effect */}
+              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at center, #1e293b 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+              <div className="absolute inset-0 bg-gradient-to-b from-[#020817]/0 via-[#020817]/50 to-[#020817]" />
 
-              {/* Animated Connection Lines */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full flex items-center justify-around px-20">
-                <div className="relative z-10 flex flex-col items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-500/50 flex items-center justify-center backdrop-blur-md shadow-[0_0_30px_rgba(37,99,235,0.2)]">
-                    <span className="text-blue-400 font-bold">CEO</span>
+              {/* Main Container */}
+              <div className="relative z-10 w-full px-4 md:px-12 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-0">
+
+                {/* Left Node: Speaker */}
+                <motion.div
+                  initial={{ x: -20, opacity: 0 }}
+                  whileInView={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 0.8 }}
+                  className="relative group/node"
+                >
+                  <div className="w-64 h-40 rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-white/10 shadow-2xl flex flex-col overflow-hidden relative backdrop-blur-sm">
+                    {/* Fake Video Feed */}
+                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=300&h=200')] bg-cover bg-center opacity-40 mix-blend-overlay group-hover/node:opacity-60 transition-opacity" />
+                    <div className="absolute top-3 right-3 px-2 py-1 rounded bg-black/60 text-[10px] font-bold text-white flex items-center gap-1 backdrop-blur-md border border-white/5">
+                      <Mic className="w-3 h-3 text-green-400" /> ON
+                    </div>
+                    <div className="mt-auto p-4 bg-gradient-to-t from-black/80 to-transparent">
+                      <div className="text-sm font-bold text-white">Speaker (CEO)</div>
+                      <div className="text-xs text-blue-400 flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span> New York • English
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs text-blue-400/60 uppercase tracking-widest font-semibold">New York</div>
-                </div>
-
-                {/* Flow Animation */}
-                <div className="flex-1 h-[2px] bg-gradient-to-r from-blue-900 via-gray-800 to-cyan-900 mx-8 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-cyan-400 to-transparent blur-[2px] animate-[shimmer_2s_infinite]" />
-                </div>
-
-                <div className="relative z-10 flex flex-col items-center gap-4">
-                  <div className="w-20 h-20 rounded-full bg-[#020817] border border-cyan-500/30 flex items-center justify-center z-20 shadow-[0_0_40px_rgba(6,182,212,0.15)] relative">
-                    <div className="absolute inset-0 rounded-full bg-cyan-500/10 animate-ping opacity-20" />
-                    <Globe className="text-cyan-400 w-8 h-8" />
+                  {/* Audio Waves Out */}
+                  <div className="absolute top-1/2 -right-12 space-y-1 hidden md:block">
+                    {[1, 2, 3].map(i => (
+                      <motion.div
+                        key={i}
+                        animate={{ x: [0, 20, 0], opacity: [0, 1, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                        className="w-8 h-1 rounded-full bg-blue-500/50"
+                      />
+                    ))}
                   </div>
-                  <div className="text-xs text-cyan-400/80 uppercase tracking-widest font-bold">TalkTube Core</div>
-                </div>
+                </motion.div>
 
-                {/* Flow Animation */}
-                <div className="flex-1 h-[2px] bg-gradient-to-r from-cyan-900 via-gray-800 to-green-900 mx-8 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-cyan-400 to-transparent blur-[2px] animate-[shimmer_2s_infinite_1s]" />
-                </div>
-
-                <div className="relative z-10 flex flex-col items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-green-600/20 border border-green-500/50 flex items-center justify-center backdrop-blur-md shadow-[0_0_30px_rgba(22,163,74,0.2)]">
-                    <span className="text-green-400 font-bold">Investor</span>
+                {/* Center Node: Processing Core */}
+                <div className="relative z-20 mx-4">
+                  {/* Glowing Rings */}
+                  <div className="absolute inset-0 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
+                  <div className="relative w-32 h-32 rounded-full border border-cyan-500/30 bg-[#020817]/80 backdrop-blur-xl flex items-center justify-center shadow-[0_0_50px_rgba(6,182,212,0.2)]">
+                    <div className="absolute inset-0 rounded-full border border-cyan-500/10 border-dashed animate-[spin_10s_linear_infinite]" />
+                    <div className="text-center p-2">
+                      <Globe className="w-8 h-8 text-cyan-400 mx-auto mb-1 animate-pulse" />
+                      <div className="text-[10px] font-bold text-cyan-300 uppercase tracking-widest">TalkTube<br />Core</div>
+                    </div>
                   </div>
-                  <div className="text-xs text-green-400/60 uppercase tracking-widest font-semibold">Dubai</div>
+                  {/* Connecting Beams */}
+                  <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent -z-10 w-[200%] -translate-x-[25%]" />
                 </div>
+
+                {/* Right Node: Listener */}
+                <motion.div
+                  initial={{ x: 20, opacity: 0 }}
+                  whileInView={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 0.8 }}
+                  className="relative group/node"
+                >
+                  <div className="w-64 h-40 rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-white/10 shadow-2xl flex flex-col overflow-hidden relative backdrop-blur-sm">
+                    {/* Fake Video Feed */}
+                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300&h=200')] bg-cover bg-center opacity-40 mix-blend-overlay group-hover/node:opacity-60 transition-opacity" />
+                    <div className="absolute top-3 right-3 px-2 py-1 rounded bg-black/60 text-[10px] font-bold text-white flex items-center gap-1 backdrop-blur-md border border-white/5">
+                      <div className="w-3 h-3 rounded-full border border-white/20 bg-[url('https://flagcdn.com/w40/br.png')] bg-cover" /> PT-BR
+                    </div>
+                    <div className="mt-auto p-4 bg-gradient-to-t from-black/80 to-transparent">
+                      <div className="text-sm font-bold text-white">Investor</div>
+                      <div className="text-xs text-green-400 flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-green-500"></span> São Paulo • Ouvindo
+                      </div>
+                    </div>
+                  </div>
+                  {/* Audio Waves In */}
+                  <div className="absolute top-1/2 -left-12 space-y-1 hidden md:block">
+                    {[1, 2, 3].map(i => (
+                      <motion.div
+                        key={i}
+                        animate={{ x: [20, 0, 20], opacity: [0, 1, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                        className="w-8 h-1 rounded-full bg-green-500/50"
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+
               </div>
             </div>
           </div>
