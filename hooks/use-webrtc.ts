@@ -324,8 +324,21 @@ export function useWebRTC(
             config: { iceServers: iceServersRef.current }
         })
 
+        peer.on('signal', (data) => {
+            // Log signal type (offer/answer/candidate)
+            const signal = data as any
+            const type = signal.type || (signal.candidate ? 'candidate' : 'unknown')
+            addLog(`Sending ${type} to ${targetUserId}`)
+
+            channelRef.current?.send({
+                type: 'broadcast',
+                event: 'signal',
+                payload: { target: targetUserId, sender: userId, signal, role: userRole, language: 'floor' }
+            })
+        })
+
         peer.on('connect', () => {
-            addLog(`Peer ${targetUserId} connected.`)
+            addLog(`*** Peer ${targetUserId} CONNECTED! ***`)
             setPeers(prev => {
                 const newMap = new Map(prev)
                 const existing = newMap.get(targetUserId)
@@ -336,17 +349,13 @@ export function useWebRTC(
             })
         })
 
-        peer.on('signal', (signal) => {
-            channelRef.current?.send({
-                type: 'broadcast',
-                event: 'signal',
-                payload: { target: targetUserId, sender: userId, signal, role: userRole, language: 'floor' } // Initial handshake
-            })
-        })
+        // Listen for raw ICE state changes if possible (SimplePeer doesn't expose this easily without raw peer access, but we can infer)
+        // actually simple-peer exposes 'connect' (datachannel) and 'stream'. 
+        // We can hook into the internal RTCPeerConnection if needed, but let's stick to simple-peer events for now.
 
         peer.on('stream', (remoteStream) => {
             console.log("Received primary stream from", targetUserId)
-            addLog(`Received stream from ${targetUserId}: ${remoteStream.getAudioTracks().length} Audio, ${remoteStream.getVideoTracks().length} Video`)
+            addLog(`*** Received STREAM from ${targetUserId} (${remoteStream.getTracks().length} tracks) ***`)
 
             setPeers(prev => {
                 const newMap = new Map(prev)
@@ -354,6 +363,7 @@ export function useWebRTC(
                 if (existing) {
                     newMap.set(targetUserId, { ...existing, stream: remoteStream })
                 } else {
+                    // This should rare happen if we created peer on presence
                     newMap.set(targetUserId, {
                         peer,
                         stream: remoteStream,
@@ -362,26 +372,25 @@ export function useWebRTC(
                         language: targetLanguage,
                         micOn: remoteMic,
                         cameraOn: remoteCam,
-                        connectionState: 'connected' // if stream arrives, likely connected
+                        connectionState: 'connected'
                     })
                 }
                 return newMap
             })
         })
 
+        // ... (track event logic preserved) ...
         peer.on('track', (track, stream) => {
             addLog(`Track received from ${targetUserId}: ${track.kind}`)
-            // If we receive a second video track, it's likely a presentation
             if (track.kind === 'video') {
                 const videoTracks = stream.getVideoTracks()
                 if (videoTracks.length > 1 && track.id === videoTracks[videoTracks.length - 1].id) {
                     addLog(`Detected secondary video track (Presentation) from ${targetUserId}`)
-                    // Create a virtual peer for presentation
                     const presentationId = `${targetUserId}-presentation`
                     setPeers(prev => {
                         const newMap = new Map(prev)
                         newMap.set(presentationId, {
-                            peer, // Shares the same peer connection
+                            peer,
                             stream: new MediaStream([track]),
                             userId: presentationId,
                             role: 'presentation',
@@ -396,13 +405,13 @@ export function useWebRTC(
         })
 
         peer.on('close', () => {
+            addLog(`Peer connection closed: ${targetUserId}`)
             removePeer(targetUserId)
         })
 
         peer.on('error', (err: Error) => {
             console.error('Peer error:', err)
-            addLog(`Peer error ${targetUserId}: ${err.message}`)
-            // Don't remove immediately, maybe mark as failed?
+            addLog(`!!! Peer Error ${targetUserId}: ${err.message}`)
             setPeers(prev => {
                 const newMap = new Map(prev)
                 const existing = newMap.get(targetUserId)
@@ -411,12 +420,7 @@ export function useWebRTC(
                 }
                 return newMap
             })
-            // removePeer(targetUserId) // Let's keep it to show error state? Or retry?
-            // Standard behavior usually is to retry or let it fail. 
-            // For now let's remove so it can retry via presence sync if needed?
-            // Actually, if we remove, presence sync might recreate it repeatedly if it's still in the user list.
-            // Let's remove for now to keep consistency with original code
-            removePeer(targetUserId)
+            // Do NOT remove immediately on error, verify connection state
         })
 
         const peerData = {
@@ -438,23 +442,34 @@ export function useWebRTC(
         if (payload.target !== userId) return
 
         const senderId = payload.sender as string
+        const signal = payload.signal as any
+        const type = signal.type || (signal.candidate ? 'candidate' : 'unknown')
+
+        // Detailed log
+        // addLog(`Received ${type} from ${senderId}`)
+
         const existingPeer = peersRef.current.get(senderId)
 
         if (existingPeer) {
-            existingPeer.peer.signal(payload.signal as SimplePeer.SignalData)
+            existingPeer.peer.signal(signal)
         } else {
-            addLog(`Received signal from new peer ${senderId}`)
-            const peer = createPeer(
-                senderId,
-                userId,
-                false,
-                stream,
-                (payload.role as string) || 'participant',
-                (payload.language as string) || 'floor',
-                true, // Default mic state for fallback
-                true  // Default camera state for fallback
-            )
-            peer?.signal(payload.signal as SimplePeer.SignalData)
+            // Only non-initiators should receive an 'offer' first
+            if (type === 'offer') {
+                addLog(`Received OFFER from new peer ${senderId}. Creating answerer...`)
+                const peer = createPeer(
+                    senderId,
+                    userId,
+                    false, // We are responder
+                    stream, // Sent OUR stream back
+                    (payload.role as string) || 'participant',
+                    (payload.language as string) || 'floor',
+                    true,
+                    true
+                )
+                peer?.signal(signal)
+            } else {
+                addLog(`Ignored orphaned ${type} from ${senderId} (No peer exists)`)
+            }
         }
     }
 
