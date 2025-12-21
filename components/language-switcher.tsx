@@ -24,7 +24,7 @@ export function LanguageSwitcher() {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuPortal>
-                <DropdownMenuContent align="end" sideOffset={5} className="z-[100]">
+                <DropdownMenuContent align="end" sideOffset={5} className="z-[100] bg-white dark:bg-[#020817] border border-gray-200 dark:border-white/10 shadow-xl">
                     <DropdownMenuItem onClick={() => setLanguage('pt')}>
                         <span className="mr-2">🇧🇷</span> Português
                         {language === 'pt' && <Check className="ml-auto h-4 w-4" />}
