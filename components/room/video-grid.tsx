@@ -127,6 +127,7 @@ export function VideoGrid({
                                         cameraOff={p.cameraOn === false}
                                         handRaised={p.handRaised}
                                         volume={calcVolume(p)}
+                                        connectionState={p.connectionState}
                                         onSpeakingChange={(s) => onPeerSpeaking?.(p.userId, s)}
                                     />
                                 )}
@@ -155,6 +156,7 @@ export function VideoGrid({
                                         cameraOff={speakerData.cameraOn === false}
                                         handRaised={speakerData.handRaised}
                                         volume={calcVolume(speakerData)}
+                                        connectionState={speakerData.connectionState}
                                         onSpeakingChange={(s) => onPeerSpeaking?.(speakerData.userId, s)}
                                     />
                                 )}
@@ -188,6 +190,7 @@ export function VideoGrid({
                                             cameraOff={p.cameraOn === false}
                                             handRaised={p.handRaised}
                                             volume={calcVolume(p)}
+                                            connectionState={p.connectionState}
                                             onSpeakingChange={(s) => onPeerSpeaking?.(p.userId, s)}
                                         />
                                     )}

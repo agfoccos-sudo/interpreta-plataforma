@@ -1,6 +1,12 @@
-
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+// Polyfills for simple-peer
+import * as process from 'process'
+if (typeof window !== 'undefined') {
+    (window as any).global = window;
+    (window as any).process = process;
+    (window as any).Buffer = (window as any).Buffer || require('buffer').Buffer;
+}
 import SimplePeer from 'simple-peer'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { playNotificationSound } from '@/lib/audio-effects'
@@ -19,6 +25,7 @@ interface PeerData {
     isPresentation?: boolean
     parentUserId?: string
     isHost?: boolean
+    connectionState?: 'connecting' | 'connected' | 'failed' | 'disconnected'
 }
 
 
@@ -303,6 +310,18 @@ export function useWebRTC(
             config: { iceServers: iceServersRef.current }
         })
 
+        peer.on('connect', () => {
+            addLog(`Peer ${targetUserId} connected.`)
+            setPeers(prev => {
+                const newMap = new Map(prev)
+                const existing = newMap.get(targetUserId)
+                if (existing) {
+                    newMap.set(targetUserId, { ...existing, connectionState: 'connected' })
+                }
+                return newMap
+            })
+        })
+
         peer.on('signal', (signal) => {
             channelRef.current?.send({
                 type: 'broadcast',
@@ -328,7 +347,8 @@ export function useWebRTC(
                         role: targetRole,
                         language: targetLanguage,
                         micOn: remoteMic,
-                        cameraOn: remoteCam
+                        cameraOn: remoteCam,
+                        connectionState: 'connected' // if stream arrives, likely connected
                     })
                 }
                 return newMap
@@ -367,6 +387,21 @@ export function useWebRTC(
 
         peer.on('error', (err: Error) => {
             console.error('Peer error:', err)
+            addLog(`Peer error ${targetUserId}: ${err.message}`)
+            // Don't remove immediately, maybe mark as failed?
+            setPeers(prev => {
+                const newMap = new Map(prev)
+                const existing = newMap.get(targetUserId)
+                if (existing) {
+                    newMap.set(targetUserId, { ...existing, connectionState: 'failed' })
+                }
+                return newMap
+            })
+            // removePeer(targetUserId) // Let's keep it to show error state? Or retry?
+            // Standard behavior usually is to retry or let it fail. 
+            // For now let's remove so it can retry via presence sync if needed?
+            // Actually, if we remove, presence sync might recreate it repeatedly if it's still in the user list.
+            // Let's remove for now to keep consistency with original code
             removePeer(targetUserId)
         })
 
@@ -376,7 +411,8 @@ export function useWebRTC(
             role: targetRole,
             language: targetLanguage,
             micOn: remoteMic,
-            cameraOn: remoteCam
+            cameraOn: remoteCam,
+            connectionState: 'connecting' as const
         }
         peersRef.current.set(targetUserId, peerData)
         setPeers(new Map(peersRef.current))

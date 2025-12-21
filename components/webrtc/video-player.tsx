@@ -14,6 +14,7 @@ interface VideoProps {
     micOff?: boolean
     handRaised?: boolean
     onSpeakingChange?: (isSpeaking: boolean) => void
+    connectionState?: 'connecting' | 'connected' | 'failed' | 'disconnected'
 }
 
 function AudioMeter({ stream, onSpeakingChange }: { stream?: MediaStream | null, onSpeakingChange?: (isSpeaking: boolean) => void }) {
@@ -84,7 +85,7 @@ function AudioMeter({ stream, onSpeakingChange }: { stream?: MediaStream | null,
     )
 }
 
-export function RemoteVideo({ stream, name = "Participante", role = "participant", volume = 1.0, micOff, cameraOff, handRaised, onSpeakingChange }: VideoProps) {
+export function RemoteVideo({ stream, name = "Participante", role = "participant", volume = 1.0, micOff, cameraOff, handRaised, onSpeakingChange, connectionState = 'connected' }: VideoProps) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isSpeaking, setIsSpeaking] = useState(false)
 
@@ -163,9 +164,14 @@ export function RemoteVideo({ stream, name = "Participante", role = "participant
             ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-accent/20">
                     <div className="relative">
-                        <div className="absolute inset-0 bg-[#06b6d4]/20 rounded-full blur-3xl animate-pulse" />
+                        <div className={cn(
+                            "absolute inset-0 rounded-full blur-3xl animate-pulse",
+                            connectionState === 'failed' ? "bg-red-500/20" : "bg-[#06b6d4]/20"
+                        )} />
                         <div className="relative bg-card/50 backdrop-blur-xl border border-border p-8 rounded-full shadow-inner ring-1 ring-white/5">
-                            {cameraOff ? (
+                            {connectionState === 'failed' ? (
+                                <VideoOff className="h-12 w-12 text-red-500 opacity-80" />
+                            ) : cameraOff ? (
                                 <VideoOff className="h-12 w-12 text-muted-foreground opacity-50" />
                             ) : (
                                 <Globe className="h-12 w-12 text-[#06b6d4] animate-spin-slow" />
@@ -173,11 +179,17 @@ export function RemoteVideo({ stream, name = "Participante", role = "participant
                         </div>
                     </div>
                     <div className="mt-6 text-center">
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">
-                            {cameraOff ? "Câmera Desligada" : "Sinal de Entrada"}
+                        <p className={cn(
+                            "text-[10px] font-black uppercase tracking-[0.3em] animate-pulse",
+                            connectionState === 'failed' ? "text-red-500" : "text-muted-foreground"
+                        )}>
+                            {connectionState === 'failed' ? "Falha na Conexão" :
+                                connectionState === 'connecting' ? "Conectando..." :
+                                    cameraOff ? "Câmera Desligada" : "Sinal de Entrada"}
                         </p>
                         <p className="text-sm font-bold text-foreground/50 mt-1 italic">
-                            {cameraOff ? name : `Aguardando ${name}...`}
+                            {connectionState === 'failed' ? "Verifique firewall/rede" :
+                                cameraOff ? name : `Aguardando ${name}...`}
                         </p>
                     </div>
                 </div>

@@ -9,9 +9,17 @@ export async function GET() {
     const turnCredential = process.env.TURN_CREDENTIAL || process.env.NEXT_PUBLIC_TURN_CREDENTIAL
 
     // Default to Google's public STUN server (Free, but only works 80% of the time, fails on Corp/4G)
+    // Default to a robust list of public STUN servers
     let iceServers: RTCIceServer[] = [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' }
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        { urls: 'stun:stun.framasoft.org:3478' },
+        { urls: 'stun:stun.voip.blackberry.com:3478' },
+        { urls: 'stun:stun.stunprotocol.org:3478' }
     ]
 
     // A. Preferred: Automatic Fetch from Metered.ca
