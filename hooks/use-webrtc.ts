@@ -103,20 +103,26 @@ export function useWebRTC(
                 addLog(`Media acquired: ${stream.getAudioTracks().length} audio tracks, ${stream.getVideoTracks().length} video tracks`)
 
                 if (!mounted) {
+                    console.log("Component unmounted during init, stopping streams.")
                     stream.getTracks().forEach(t => t.stop())
                     return
                 }
 
                 setLocalStream(stream)
                 originalMicTrackRef.current = stream.getAudioTracks()[0]
-                // Fetch Initial Host
-                const { data: meeting } = await supabase.from('meetings').select('host_id').eq('id', roomId).single()
-                if (meeting?.host_id) {
-                    setHostId(meeting.host_id)
-                }
 
-                joinChannel(stream)
+                // Fetch Initial Host
+                try {
+                    const { data: meeting } = await supabase.from('meetings').select('host_id').eq('id', roomId).single()
+                    if (meeting?.host_id && mounted) {
+                        setHostId(meeting.host_id)
+                    }
+                } catch (e) { console.error("Error fetching host", e) }
+
+                if (mounted) joinChannel(stream)
+
             } catch (err: unknown) {
+                if (!mounted) return
                 const error = err as Error
                 console.error("Error accessing media devices:", error)
                 const errorMsg = `Error accessing media: ${error.message}. Joining as OBSERVER.`
@@ -125,31 +131,31 @@ export function useWebRTC(
                 joinChannel(null)
             }
         }
+
         init()
 
         return () => {
             mounted = false
-            // Cleanup strict
-            console.log("Cleaning up WebRTC...", activeStream)
+            console.log("Cleaning up WebRTC effect...", activeStream?.id)
 
+            // Stop local stream
             if (activeStream) {
                 activeStream.getTracks().forEach(track => {
-                    console.log(`Stopping track: ${track.kind} - ${track.label}`)
                     track.stop()
                     track.enabled = false
                 })
             }
-            // Fallback: Stop specific refs if they exist
-            if (originalMicTrackRef.current) originalMicTrackRef.current.stop()
 
             // Clean peers
             peersRef.current.forEach(p => p.peer.destroy())
             peersRef.current.clear()
             setPeers(new Map())
 
+            // Unsubscribe channel
             if (channelRef.current) {
-                channelRef.current.unsubscribe()
+                const ch = channelRef.current
                 channelRef.current = null
+                ch.unsubscribe().then(() => console.log("Channel unsubscribed"))
             }
         }
     }, [roomId, userId])
@@ -165,7 +171,20 @@ export function useWebRTC(
 
     // 2. Signaling Logic (Supabase Realtime)
     const joinChannel = (stream: MediaStream | null) => {
+        // Prevent joining if already connected to THIS room
+        if (channelRef.current && channelRef.current.topic === `realtime:room:${roomId}`) {
+            console.warn("Already joined channel, skipping duplicate join.")
+            return
+        }
+
         addLog(`Joining channel room:${roomId} as ${userId} (${stream ? 'Video' : 'Observer'})`)
+
+        // Ensure strictly one channel per hook instance
+        if (channelRef.current) {
+            console.log("Cleaning up previous channel before join")
+            channelRef.current.unsubscribe()
+        }
+
         const newChannel = supabase.channel(`room:${roomId}`, {
             config: {
                 presence: {
@@ -177,6 +196,7 @@ export function useWebRTC(
         channelRef.current = newChannel
         setChannelState(newChannel) // Trigger re-render for consumers
         addLog(`Connecting to Supabase channel room:${roomId}...`)
+
         newChannel
             .on('broadcast', { event: 'signal' }, (event: { payload: Record<string, unknown> }) => {
                 const payload = event.payload
