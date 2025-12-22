@@ -46,13 +46,21 @@ export function VideoGrid({
         ...peers.filter(p => !p.userId.endsWith('-presentation')).map(p => ({ ...p, isLocal: false }))
     ]
 
-    // THEATER MODE DETECTION
+    // THEATER / SPEAKER MODE DETECTION
     const presentationPeer = peers.find(p => p.isPresentation === true) ||
         allParticipants.find(p => p.stream && p.stream.getVideoTracks().filter((t: any) => t.readyState === 'live').length > 1)
-    const isTheaterMode = !!presentationPeer
+
+    // SPEAKER MODE LOGIC
+    const isSpeakerMode = mode === 'speaker' && allParticipants.length > 1
+    const activeSubject = isSpeakerMode
+        ? (allParticipants.find(p => p.userId === pinnedSpeakerId) || allParticipants.find(p => p.userId === activeSpeakerId) || allParticipants.find(p => !p.isLocal) || allParticipants[0])
+        : null
+
+    const mainPeer = presentationPeer || activeSubject
+    const isTheaterMode = !!mainPeer
 
     const galleryParticipants = isTheaterMode
-        ? allParticipants.filter(p => p.userId !== presentationPeer.userId && !p.isPresentation)
+        ? allParticipants.filter(p => p.userId !== mainPeer.userId && !p.isPresentation)
         : allParticipants
 
     const galleryLayout = useGalleryLayout(containerRef, galleryParticipants.length)
@@ -73,46 +81,66 @@ export function VideoGrid({
     }
 
     return (
-        <div ref={containerRef} className="w-full h-full p-4 flex flex-col items-center justify-center overflow-hidden relative">
-            {isTheaterMode && presentationPeer ? (
-                <div className="w-full h-full flex flex-col md:flex-row gap-6 p-2 overflow-hidden">
+        <div ref={containerRef} className="w-full h-full p-2 md:p-4 flex flex-col items-center justify-center overflow-hidden relative">
+            {isTheaterMode && mainPeer ? (
+                <div className="w-full h-full flex flex-col md:flex-row gap-4 md:gap-6 p-1 md:p-2 overflow-hidden">
                     {/* MAIN STAGE */}
-                    <div className="flex-[4] h-full relative bg-zinc-950 rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl">
-                        {presentationPeer.isLocal ? (
+                    <div className="flex-[3] md:flex-[4] h-full relative bg-zinc-950 rounded-2xl md:rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl">
+                        {mainPeer.isLocal && !isSpeakerMode ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40 bg-zinc-900/90 backdrop-blur-xl z-20">
                                 <motion.div
                                     initial={{ scale: 0.9, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
                                     className="flex flex-col items-center text-center px-8"
                                 >
-                                    <div className="h-20 w-20 rounded-full bg-[#06b6d4]/10 flex items-center justify-center mb-6">
-                                        <Monitor className="h-10 w-10 text-[#06b6d4]" />
+                                    <div className="h-16 w-16 md:h-20 md:w-20 rounded-full bg-[#06b6d4]/10 flex items-center justify-center mb-4 md:mb-6">
+                                        <Monitor className="h-8 w-8 md:h-10 md:w-10 text-[#06b6d4]" />
                                     </div>
-                                    <h3 className="text-2xl font-bold text-white mb-2">Sua tela está sendo compartilhada</h3>
-                                    <p className="text-sm max-w-sm opacity-60">Para evitar o loop infinito, você vê este aviso enquanto os outros participantes vêem sua tela.</p>
+                                    <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Sua tela está sendo compartilhada</h3>
+                                    <p className="text-xs md:text-sm max-w-sm opacity-60">Para evitar o loop infinito, você vê este aviso enquanto os outros participantes vêem sua tela.</p>
                                 </motion.div>
                             </div>
                         ) : (
-                            <RemoteVideo
-                                stream={getPresentationStream(presentationPeer)}
-                                name="Apresentação"
-                                role="presentation"
-                                volume={0}
-                                connectionState="connected"
-                                isPresentation={true}
-                            />
+                            mainPeer.isLocal ? (
+                                <LocalVideo stream={mainPeer.stream} role={mainPeer.role} micOff={!mainPeer.micOn} cameraOff={!mainPeer.cameraOn} name={mainPeer.name} isSpeaking={activeSpeakerId === 'local'} />
+                            ) : (
+                                <RemoteVideo
+                                    stream={presentationPeer ? getPresentationStream(mainPeer) : mainPeer.stream}
+                                    name={mainPeer.name || "Apresentação"}
+                                    role={presentationPeer ? "presentation" : mainPeer.role}
+                                    volume={presentationPeer ? 0 : calcVolume(mainPeer)}
+                                    connectionState={mainPeer.connectionState || 'connected'}
+                                    isPresentation={!!presentationPeer}
+                                    isSpeaking={activeSpeakerId === mainPeer.userId}
+                                />
+                            )
                         )}
                     </div>
 
-                    {/* SIDEBAR */}
-                    <div className="flex-1 h-full overflow-y-auto no-scrollbar flex flex-col gap-4 min-w-[240px]">
+                    {/* SIDEBAR / STRIP (Responsive: Horizontal scroll on mobile, Vertical list on desktop) */}
+                    <div className="flex-1 md:h-full overflow-x-auto md:overflow-y-auto no-scrollbar flex flex-row md:flex-col gap-3 md:gap-4 min-h-[120px] md:min-w-[240px]">
                         <AnimatePresence>
                             {galleryParticipants.map((p) => (
-                                <motion.div key={p.userId} layout initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.8 }} className="aspect-video w-full shrink-0">
+                                <motion.div
+                                    key={p.userId}
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    className="aspect-video h-full md:h-auto md:w-full shrink-0"
+                                    onClick={() => onSpeakerChange?.(p.userId)}
+                                >
                                     {p.isLocal ? (
-                                        <LocalVideo stream={p.stream} role={p.role} micOff={!p.micOn} cameraOff={!p.cameraOn} name={p.name} />
+                                        <LocalVideo stream={p.stream} role={p.role} micOff={!p.micOn} cameraOff={!p.cameraOn} name={p.name} isSpeaking={activeSpeakerId === 'local'} />
                                     ) : (
-                                        <RemoteVideo stream={p.stream} name={p.name || p.userId} role={p.role} volume={calcVolume(p)} connectionState={p.connectionState} />
+                                        <RemoteVideo
+                                            stream={p.stream}
+                                            name={p.name || p.userId}
+                                            role={p.role}
+                                            volume={calcVolume(p)}
+                                            connectionState={p.connectionState}
+                                            isSpeaking={activeSpeakerId === p.userId}
+                                        />
                                     )}
                                 </motion.div>
                             ))}
@@ -122,7 +150,7 @@ export function VideoGrid({
             ) : (
                 /* GALLERY */
                 <div
-                    className="grid gap-4 justify-center content-center transition-all duration-700"
+                    className="grid gap-3 md:gap-4 justify-center content-center transition-all duration-700 w-full h-full"
                     style={{
                         gridTemplateColumns: `repeat(${galleryLayout.cols}, ${galleryLayout.width}px)`,
                         gridTemplateRows: `repeat(${galleryLayout.rows}, ${galleryLayout.height}px)`,
@@ -137,12 +165,13 @@ export function VideoGrid({
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ opacity: 0, scale: 0.5 }}
                                 style={{ width: galleryLayout.width, height: galleryLayout.height }}
-                                className="box-border"
+                                className="box-border cursor-pointer group"
+                                onClick={() => onSpeakerChange?.(p.userId)}
                             >
                                 {p.isLocal ? (
-                                    <LocalVideo stream={p.stream} role={p.role} micOff={!p.micOn} cameraOff={!p.cameraOn} name={p.name} />
+                                    <LocalVideo stream={p.stream} role={p.role} micOff={!p.micOn} cameraOff={!p.cameraOn} name={p.name} isSpeaking={activeSpeakerId === 'local'} />
                                 ) : (
-                                    <RemoteVideo stream={p.stream} name={p.name || p.userId} role={p.role} volume={calcVolume(p)} connectionState={p.connectionState} />
+                                    <RemoteVideo stream={p.stream} name={p.name || p.userId} role={p.role} volume={calcVolume(p)} connectionState={p.connectionState} isSpeaking={activeSpeakerId === p.userId} />
                                 )}
                             </motion.div>
                         ))}

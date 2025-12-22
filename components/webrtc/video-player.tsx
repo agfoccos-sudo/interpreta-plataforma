@@ -42,11 +42,11 @@ export function RemoteVideo({ stream, name, role, micOff, cameraOff, handRaised,
             {cameraOff || !stream ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950 backdrop-blur-3xl">
                     <div className="relative">
-                        <div className="h-24 w-24 rounded-full bg-zinc-800/50 flex items-center justify-center border border-white/5">
-                            <User className="h-12 w-12 text-zinc-600" />
+                        <div className="h-16 w-16 md:h-24 md:w-24 rounded-full bg-zinc-800/50 flex items-center justify-center border border-white/5">
+                            <User className="h-8 w-8 md:h-12 md:w-12 text-zinc-600" />
                         </div>
                     </div>
-                    <span className="mt-4 text-zinc-400 font-medium tracking-tight">{name}</span>
+                    <span className="mt-2 md:mt-4 text-zinc-400 font-medium tracking-tight text-xs md:text-base">{name}</span>
                 </div>
             ) : (
                 <video
@@ -61,18 +61,18 @@ export function RemoteVideo({ stream, name, role, micOff, cameraOff, handRaised,
             )}
 
             {/* OVERLAYS */}
-            <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none">
-                <div className="flex items-center gap-3 bg-black/40 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10">
-                    <span className="text-white text-sm font-bold tracking-tight">{name}</span>
+            <div className="absolute bottom-3 left-3 md:bottom-6 md:left-6 right-3 md:right-6 flex items-center justify-between pointer-events-none">
+                <div className="flex items-center gap-2 md:gap-3 bg-black/40 backdrop-blur-xl px-2.5 py-1.5 md:px-4 md:py-2 rounded-xl md:rounded-2xl border border-white/10">
+                    <span className="text-white text-[10px] md:text-sm font-bold tracking-tight">{name}</span>
                     {role === 'interpreter' && (
-                        <div className="bg-[#06b6d4] h-1.5 w-1.5 rounded-full animate-pulse" />
+                        <div className="bg-[#06b6d4] h-1 w-1 md:h-1.5 md:w-1.5 rounded-full animate-pulse" />
                     )}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-1.5 md:gap-2">
                     {micOff && (
-                        <div className="bg-red-500/20 backdrop-blur-xl border border-red-500/30 p-2.5 rounded-2xl">
-                            <MicOff className="h-4 w-4 text-red-500" />
+                        <div className="bg-red-500/20 backdrop-blur-xl border border-red-500/30 p-1.5 md:p-2.5 rounded-xl md:rounded-2xl">
+                            <MicOff className="h-3.5 w-3.5 md:h-4 md:w-4 text-red-500" />
                         </div>
                     )}
                 </div>
@@ -127,13 +127,13 @@ export function LocalVideo({ stream, name, role, micOff, cameraOff, handRaised, 
                 />
             )}
 
-            <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
-                <div className="bg-black/40 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10">
-                    <span className="text-white text-sm font-bold tracking-tight">Você</span>
+            <div className="absolute bottom-3 left-3 md:bottom-6 md:left-6 right-3 md:right-6 flex items-center justify-between">
+                <div className="bg-black/40 backdrop-blur-xl px-2.5 py-1.5 md:px-4 md:py-2 rounded-xl md:rounded-2xl border border-white/10">
+                    <span className="text-white text-[10px] md:text-sm font-bold tracking-tight">Você</span>
                 </div>
                 {micOff && (
-                    <div className="bg-red-500/20 backdrop-blur-xl border border-red-500/30 p-2.5 rounded-2xl">
-                        <MicOff className="h-4 w-4 text-red-500" />
+                    <div className="bg-red-500/20 backdrop-blur-xl border border-red-500/30 p-1.5 md:p-2.5 rounded-xl md:rounded-2xl">
+                        <MicOff className="h-3.5 w-3.5 md:h-4 md:w-4 text-red-500" />
                     </div>
                 )}
             </div>

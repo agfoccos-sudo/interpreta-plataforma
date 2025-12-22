@@ -377,35 +377,35 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                 </div>
 
                 {/* View Mode Controls - Zoom style */}
-                <div className="bg-card/40 backdrop-blur-md p-1 rounded-2xl border border-border pointer-events-auto shadow-xl flex gap-2">
+                <div className="bg-card/40 backdrop-blur-md p-0.5 md:p-1 rounded-xl md:rounded-2xl border border-border pointer-events-auto shadow-xl flex gap-1 md:gap-2">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="flex items-center gap-2 px-4 h-10 font-bold text-sm rounded-xl hover:bg-white/10">
-                                <Maximize2 className="h-4 w-4" />
-                                Visualização
+                            <Button variant="ghost" className="flex items-center gap-1.5 md:gap-2 px-2 md:px-4 h-8 md:h-10 font-bold text-[10px] md:text-sm rounded-lg md:rounded-xl hover:bg-white/10">
+                                <Maximize2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                                <span className="hidden xs:inline">Visualização</span>
                                 <ChevronUp className="h-3 w-3 opacity-50 rotate-180" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent side="bottom" align="end" className="w-56 mt-2 rounded-2xl bg-black/90 backdrop-blur-3xl border-white/10 p-2 shadow-2xl z-[100]">
+                        <DropdownMenuContent side="bottom" align="end" className="w-48 md:w-56 mt-2 rounded-xl md:rounded-2xl bg-black/95 backdrop-blur-3xl border-white/10 p-1 md:p-2 shadow-2xl z-[100]">
                             <DropdownMenuItem
                                 onClick={() => setViewMode('gallery')}
-                                className={cn("rounded-xl p-3 flex items-center justify-between cursor-pointer", viewMode === 'gallery' && "bg-[#06b6d4]/20 text-[#06b6d4]")}
+                                className={cn("rounded-lg md:rounded-xl p-2 md:p-3 flex items-center justify-between cursor-pointer", viewMode === 'gallery' && "bg-[#06b6d4]/20 text-[#06b6d4]")}
                             >
-                                <div className="flex items-center gap-3">
-                                    <LayoutGrid className="h-4 w-4" />
-                                    <span className="font-semibold">Galeria</span>
+                                <div className="flex items-center gap-2 md:gap-3">
+                                    <LayoutGrid className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                                    <span className="font-semibold text-xs md:text-sm">Galeria</span>
                                 </div>
-                                {viewMode === 'gallery' && <div className="h-2 w-2 rounded-full bg-[#06b6d4]" />}
+                                {viewMode === 'gallery' && <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-[#06b6d4]" />}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 onClick={() => setViewMode('speaker')}
-                                className={cn("rounded-xl p-3 flex items-center justify-between cursor-pointer", viewMode === 'speaker' && "bg-[#06b6d4]/20 text-[#06b6d4]")}
+                                className={cn("rounded-lg md:rounded-xl p-2 md:p-3 flex items-center justify-between cursor-pointer", viewMode === 'speaker' && "bg-[#06b6d4]/20 text-[#06b6d4]")}
                             >
-                                <div className="flex items-center gap-3">
-                                    <Users className="h-4 w-4" />
-                                    <span className="font-semibold">Orador</span>
+                                <div className="flex items-center gap-2 md:gap-3">
+                                    <Users className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                                    <span className="font-semibold text-xs md:text-sm">Orador</span>
                                 </div>
-                                {viewMode === 'speaker' && <div className="h-2 w-2 rounded-full bg-[#06b6d4]" />}
+                                {viewMode === 'speaker' && <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-[#06b6d4]" />}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-white/10" />
                             <DropdownMenuItem
@@ -418,10 +418,10 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                         }
                                     }
                                 }}
-                                className="rounded-xl p-3 flex items-center gap-3 cursor-pointer"
+                                className="rounded-lg md:rounded-xl p-2 md:p-3 flex items-center gap-2 md:gap-3 cursor-pointer"
                             >
-                                <Maximize2 className="h-4 w-4" />
-                                <span className="font-semibold">Tela Cheia</span>
+                                <Maximize2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                                <span className="font-semibold text-xs md:text-sm">Tela Cheia</span>
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -597,12 +597,12 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             variant={micOn ? "ghost" : "destructive"}
                             size="icon"
                             className={cn(
-                                "h-12 w-12 rounded-xl rounded-r-none border-0 transition-all",
+                                "h-10 w-10 md:h-12 md:w-12 rounded-lg md:rounded-xl rounded-r-none border-0 transition-all",
                                 micOn ? "bg-accent/20 text-foreground hover:bg-accent/40" : "bg-red-500 text-white shadow-red-500/20"
                             )}
                             onClick={handleToggleMic}
                         >
-                            {micOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+                            {micOn ? <Mic className="h-4 w-4 md:h-5 md:w-5" /> : <MicOff className="h-4 w-4 md:h-5 md:w-5" />}
                         </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -631,12 +631,12 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             variant={cameraOn ? "ghost" : "destructive"}
                             size="icon"
                             className={cn(
-                                "h-12 w-12 rounded-xl rounded-r-none border-0 transition-all",
+                                "h-10 w-10 md:h-12 md:w-12 rounded-lg md:rounded-xl rounded-r-none border-0 transition-all",
                                 cameraOn ? "bg-accent/20 text-foreground hover:bg-accent/40" : "bg-red-500 text-white shadow-red-500/20"
                             )}
                             onClick={handleToggleCamera}
                         >
-                            {cameraOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+                            {cameraOn ? <Video className="h-4 w-4 md:h-5 md:w-5" /> : <VideoOff className="h-4 w-4 md:h-5 md:w-5" />}
                         </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -666,13 +666,13 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 size="icon"
                                 disabled={isAnySharing && !isSharing}
                                 className={cn(
-                                    "h-14 w-14 rounded-2xl shadow-xl transition-all active:scale-95 border-0 hidden md:flex",
+                                    "h-12 w-12 md:h-14 md:w-14 rounded-lg md:rounded-2xl shadow-xl transition-all active:scale-95 border-0",
                                     isSharing ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20 animate-pulse" : "bg-accent/50 text-foreground hover:bg-accent",
                                     isAnySharing && !isSharing && "opacity-50 cursor-not-allowed grayscale"
                                 )}
                                 title={isAnySharing && !isSharing ? "Sala Ocupada" : "Compartilhar"}
                             >
-                                <Monitor className="h-6 w-6" />
+                                <Monitor className="h-5 w-5 md:h-6 md:w-6" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent side="top" align="center" className="w-56 mb-4 rounded-2xl bg-card/80 backdrop-blur-xl border-border p-2 shadow-2xl">
@@ -718,13 +718,13 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         variant={localHandRaised ? "default" : "secondary"}
                         size="icon"
                         className={cn(
-                            "h-14 w-14 rounded-2xl shadow-xl transition-all active:scale-95 border-0",
+                            "h-12 w-12 md:h-14 md:w-14 rounded-lg md:rounded-2xl shadow-xl transition-all active:scale-95 border-0",
                             localHandRaised ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20" : "bg-accent/50 text-foreground hover:bg-accent"
                         )}
                         onClick={toggleHand}
                         title="Levantar a Mão"
                     >
-                        <Hand className={cn("h-6 w-6", localHandRaised && "animate-bounce")} />
+                        <Hand className={cn("h-5 w-5 md:h-6 md:w-6", localHandRaised && "animate-bounce")} />
                     </Button>
 
                     {/* Reactions Menu */}
