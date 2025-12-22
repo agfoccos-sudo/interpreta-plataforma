@@ -83,9 +83,9 @@ export function VideoGrid({
     return (
         <div ref={containerRef} className="w-full h-full p-2 md:p-4 flex flex-col items-center justify-center overflow-hidden relative">
             {isTheaterMode && mainPeer ? (
-                <div className="w-full h-full flex flex-col md:flex-row gap-4 md:gap-6 p-1 md:p-2 overflow-hidden">
+                <div className="w-full h-full flex flex-col lg:flex-row gap-4 lg:gap-6 p-1 md:p-2 overflow-hidden">
                     {/* MAIN STAGE */}
-                    <div className="flex-[3] md:flex-[4] h-full relative bg-zinc-950 rounded-2xl md:rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl">
+                    <div className="flex-[3] lg:flex-[4] h-full relative bg-zinc-950 rounded-2xl lg:rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl">
                         {mainPeer.isLocal && !isSpeakerMode ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40 bg-zinc-900/90 backdrop-blur-xl z-20">
                                 <motion.div
@@ -102,7 +102,15 @@ export function VideoGrid({
                             </div>
                         ) : (
                             mainPeer.isLocal ? (
-                                <LocalVideo stream={mainPeer.stream} role={mainPeer.role} micOff={!mainPeer.micOn} cameraOff={!mainPeer.cameraOn} name={mainPeer.name} isSpeaking={activeSpeakerId === 'local'} />
+                                <LocalVideo
+                                    stream={mainPeer.stream}
+                                    role={mainPeer.role}
+                                    micOff={!mainPeer.micOn}
+                                    cameraOff={!mainPeer.cameraOn}
+                                    name={mainPeer.name}
+                                    isSpeaking={activeSpeakerId === 'local'}
+                                    handRaised={mainPeer.handRaised}
+                                />
                             ) : (
                                 <RemoteVideo
                                     stream={presentationPeer ? getPresentationStream(mainPeer) : mainPeer.stream}
@@ -112,13 +120,14 @@ export function VideoGrid({
                                     connectionState={mainPeer.connectionState || 'connected'}
                                     isPresentation={!!presentationPeer}
                                     isSpeaking={activeSpeakerId === mainPeer.userId}
+                                    handRaised={mainPeer.handRaised}
                                 />
                             )
                         )}
                     </div>
 
-                    {/* SIDEBAR / STRIP (Responsive: Horizontal scroll on mobile, Vertical list on desktop) */}
-                    <div className="flex-1 md:h-full overflow-x-auto md:overflow-y-auto no-scrollbar flex flex-row md:flex-col gap-3 md:gap-4 min-h-[120px] md:min-w-[240px]">
+                    {/* SIDEBAR / STRIP (Responsive: Horizontal scroll on mobile/tablet, Vertical list on desktop lg+) */}
+                    <div className="flex-1 lg:h-full overflow-x-auto lg:overflow-y-auto no-scrollbar flex flex-row lg:flex-col gap-3 lg:gap-4 min-h-[140px] lg:min-w-[280px]">
                         <AnimatePresence>
                             {galleryParticipants.map((p) => (
                                 <motion.div
@@ -127,11 +136,19 @@ export function VideoGrid({
                                     initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.8 }}
-                                    className="aspect-video h-full md:h-auto md:w-full shrink-0"
+                                    className="aspect-video h-full lg:h-auto lg:w-full shrink-0 cursor-pointer hover:ring-2 hover:ring-[#06b6d4]/50 rounded-xl transition-all"
                                     onClick={() => onSpeakerChange?.(p.userId)}
                                 >
                                     {p.isLocal ? (
-                                        <LocalVideo stream={p.stream} role={p.role} micOff={!p.micOn} cameraOff={!p.cameraOn} name={p.name} isSpeaking={activeSpeakerId === 'local'} />
+                                        <LocalVideo
+                                            stream={p.stream}
+                                            role={p.role}
+                                            micOff={!p.micOn}
+                                            cameraOff={!p.cameraOn}
+                                            name={p.name}
+                                            isSpeaking={activeSpeakerId === 'local'}
+                                            handRaised={p.handRaised}
+                                        />
                                     ) : (
                                         <RemoteVideo
                                             stream={p.stream}
@@ -140,6 +157,7 @@ export function VideoGrid({
                                             volume={calcVolume(p)}
                                             connectionState={p.connectionState}
                                             isSpeaking={activeSpeakerId === p.userId}
+                                            handRaised={p.handRaised}
                                         />
                                     )}
                                 </motion.div>

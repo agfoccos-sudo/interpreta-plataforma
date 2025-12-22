@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MicOff, VideoOff, Maximize2, Loader2, User } from 'lucide-react'
+import { MicOff, VideoOff, Maximize2, Loader2, User, Hand } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface VideoPlayerProps {
@@ -70,6 +70,11 @@ export function RemoteVideo({ stream, name, role, micOff, cameraOff, handRaised,
                 </div>
 
                 <div className="flex gap-1.5 md:gap-2">
+                    {handRaised && (
+                        <div className="bg-amber-500/20 backdrop-blur-xl border border-amber-500/30 p-1.5 md:p-2.5 rounded-xl md:rounded-2xl">
+                            <Hand className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-500 animate-bounce" />
+                        </div>
+                    )}
                     {micOff && (
                         <div className="bg-red-500/20 backdrop-blur-xl border border-red-500/30 p-1.5 md:p-2.5 rounded-xl md:rounded-2xl">
                             <MicOff className="h-3.5 w-3.5 md:h-4 md:w-4 text-red-500" />
@@ -131,11 +136,18 @@ export function LocalVideo({ stream, name, role, micOff, cameraOff, handRaised, 
                 <div className="bg-black/40 backdrop-blur-xl px-2.5 py-1.5 md:px-4 md:py-2 rounded-xl md:rounded-2xl border border-white/10">
                     <span className="text-white text-[10px] md:text-sm font-bold tracking-tight">Você</span>
                 </div>
-                {micOff && (
-                    <div className="bg-red-500/20 backdrop-blur-xl border border-red-500/30 p-1.5 md:p-2.5 rounded-xl md:rounded-2xl">
-                        <MicOff className="h-3.5 w-3.5 md:h-4 md:w-4 text-red-500" />
-                    </div>
-                )}
+                <div className="flex gap-1.5 md:gap-2">
+                    {handRaised && (
+                        <div className="bg-amber-500/20 backdrop-blur-xl border border-amber-500/30 p-1.5 md:p-2.5 rounded-xl md:rounded-2xl">
+                            <Hand className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-500 animate-bounce" />
+                        </div>
+                    )}
+                    {micOff && (
+                        <div className="bg-red-500/20 backdrop-blur-xl border border-red-500/30 p-1.5 md:p-2.5 rounded-xl md:rounded-2xl">
+                            <MicOff className="h-3.5 w-3.5 md:h-4 md:w-4 text-red-500" />
+                        </div>
+                    )}
+                </div>
             </div>
 
             <style jsx>{`

@@ -9,7 +9,6 @@ interface LayoutParams {
 }
 
 export function useGalleryLayout(containerRef: RefObject<HTMLElement | null>, participantCount: number) {
-    // Start with a reasonable default to avoid flash of 0x0
     const [layout, setLayout] = useState<LayoutParams>({ width: 320, height: 180, cols: 1, rows: 1, count: 0 })
 
     const calculateLayout = useCallback(() => {
@@ -37,8 +36,8 @@ export function useGalleryLayout(containerRef: RefObject<HTMLElement | null>, pa
                 w = h * ratio
             }
 
-            // We want the largest possible area
-            if (w > bestWidth) {
+            // Area optimization
+            if (w * h > bestWidth * bestHeight) {
                 bestWidth = w
                 bestHeight = h
                 bestCols = cols
@@ -46,9 +45,13 @@ export function useGalleryLayout(containerRef: RefObject<HTMLElement | null>, pa
             }
         }
 
+        // Apply scaling constraints (V11.3: Adjusted for tablets)
+        const isSmallScreen = containerWidth < 768
+        const padding = isSmallScreen ? 4 : 12
+
         setLayout({
-            width: Math.max(200, Math.floor(bestWidth - 8)), // Padding allowance
-            height: Math.max(112, Math.floor(bestHeight - 8)),
+            width: Math.floor(bestWidth - padding),
+            height: Math.floor(bestHeight - padding),
             cols: bestCols,
             rows: bestRows,
             count: participantCount
@@ -57,9 +60,10 @@ export function useGalleryLayout(containerRef: RefObject<HTMLElement | null>, pa
 
     useEffect(() => {
         calculateLayout()
-        window.addEventListener('resize', calculateLayout)
-        return () => window.removeEventListener('resize', calculateLayout)
-    }, [calculateLayout])
+        const resizeObserver = new ResizeObserver(() => calculateLayout())
+        if (containerRef.current) resizeObserver.observe(containerRef.current)
+        return () => resizeObserver.disconnect()
+    }, [calculateLayout, containerRef])
 
     return layout
 }
