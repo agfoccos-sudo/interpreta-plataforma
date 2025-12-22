@@ -1,8 +1,10 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from "react"
-import { VideoOff, Globe, MicOff, Hand, User } from "lucide-react"
+import { VideoOff, Globe, MicOff, Hand, User, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+console.log("[VideoPlayer] LOADED - v4.0 - TEST-DEPLOY")
 
 interface VideoProps {
     stream?: MediaStream | null
@@ -89,6 +91,7 @@ export function RemoteVideo({ stream, name = "Participante", role = "participant
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isSpeaking, setIsSpeaking] = useState(false)
     const [isVideoReady, setIsVideoReady] = useState(false)
+    const [tracksCount, setTracksCount] = useState(0)
 
     useEffect(() => {
         if (videoRef.current) {
@@ -98,171 +101,124 @@ export function RemoteVideo({ stream, name = "Participante", role = "participant
 
     useEffect(() => {
         const videoEl = videoRef.current
-        if (!videoEl || !stream) return
+        if (!videoEl || !stream) {
+            setTracksCount(0)
+            setIsVideoReady(false)
+            return
+        }
 
-        console.log(`[RemoteVideo] New Stream Assigned: ${stream.id} (Tracks: ${stream.getTracks().length})`)
-        videoEl.srcObject = null
-        setIsVideoReady(false)
+        setTracksCount(stream.getTracks().length)
+        console.log(`[RemoteVideo] Stream ${stream.id} (${stream.getTracks().length} trks)`)
 
-        const timer = setTimeout(async () => {
-            if (!videoEl) return
-            videoEl.srcObject = stream
+        videoEl.srcObject = stream
 
+        const attemptPlay = async () => {
             try {
-                // FORCE UNMUTED for testing if possible, but keep robust fallback
                 await videoEl.play()
                 setIsVideoReady(true)
             } catch (error) {
-                console.warn(`[RemoteVideo] Autoplay blocked, trying muted...`, error)
                 videoEl.muted = true
                 try {
                     await videoEl.play()
                     setIsVideoReady(true)
-                } catch (e2) {
-                    console.error(`[RemoteVideo] Play failed completely`, e2)
-                }
-            }
-        }, 100)
-
-        // Metadata load handler (just in case)
-        const handleMetadata = () => {
-            if (videoEl.paused) {
-                videoEl.play().catch(e => console.log("Metadata play attempt failed", e))
+                } catch (e2) { }
             }
         }
-        videoEl.addEventListener('loadedmetadata', handleMetadata)
+
+        if (videoEl.readyState >= 1) {
+            attemptPlay()
+        } else {
+            videoEl.onloadedmetadata = attemptPlay
+        }
 
         return () => {
-            clearTimeout(timer)
-            videoEl.removeEventListener('loadedmetadata', handleMetadata)
+            videoEl.srcObject = null
         }
     }, [stream])
 
-    // DEBUG BORDER LOGIC
-    // RED = No Stream Prop
-    // BLUE = Stream Prop Present (Connection likely OK)
-    // GREEN = Video Ready & Playing
-    const debugBorderColor = isVideoReady ? 'border-green-500' : (stream ? 'border-blue-500' : 'border-red-500')
+    // DEBUG UI
+    const debugBorder = isVideoReady ? 'border-green-500' : (stream ? 'border-blue-500' : 'border-red-500')
 
     return (
         <div className={cn(
-            "bg-zinc-900 rounded-[2.5rem] overflow-hidden relative border-8 transition-all duration-500 w-full h-full shadow-2xl",
-            debugBorderColor
+            "rounded-[2rem] overflow-hidden relative border-[12px] bg-zinc-950 w-full h-full transition-all shadow-2xl",
+            debugBorder
         )}>
             {stream ? (
                 <>
-                    <video
-                        ref={videoRef}
-                        playsInline
-                        autoPlay
-                        className={cn(
-                            "w-full h-full object-cover rounded-[2.3rem]",
-                            // DISABLE OPACITY HIDING -> Always show what we have, even if black
-                            "opacity-100"
-                        )}
-                    />
-
-                    {/* VISIBLE DEBUG INFO OVERLAY */}
-                    <div className="absolute top-10 left-2 z-[60] bg-black/80 text-white text-[10px] font-mono p-2 rounded pointer-events-none">
-                        STRM: {stream.id.slice(0, 5)}<br />
-                        TRK: A={stream.getAudioTracks().length} V={stream.getVideoTracks().length}<br />
-                        RDY: {isVideoReady ? 'YES' : 'NO'}<br />
-                        CONN: {connectionState}
-                    </div>
-
-                    {/* Status Icons */}
-                    <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
-                        {micOff && <div className="bg-red-500 p-1 rounded"><MicOff className="h-4 w-4 text-white" /></div>}
-                    </div>
-
-                    <div className="absolute bottom-4 left-4">
-                        <span className="text-white bg-black/50 px-2 rounded">{name}</span>
-                    </div>
-
-                    <div className="hidden">
-                        <AudioMeter stream={stream} onSpeakingChange={setIsSpeaking} />
+                    <video ref={videoRef} playsInline autoPlay className="w-full h-full object-cover" />
+                    <div className="absolute inset-x-0 top-0 bg-black/70 p-1 text-[10px] text-white flex justify-between z-[99]">
+                        <span>REMOTE: {name.slice(0, 8)}</span>
+                        <span>TRKS: {tracksCount}</span>
+                        <span>{isVideoReady ? "PLAYING" : "WAITING"}</span>
                     </div>
                 </>
             ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-white">
-                    <div className="text-center">
-                        <VideoOff className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                        <p>{connectionState}</p>
-                        <p className="text-xs text-zinc-500">No Stream Prop</p>
-                    </div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
+                    <VideoOff className="h-10 w-10 mb-2 opacity-50" />
+                    <p className="text-xs font-bold uppercase tracking-widest">{connectionState}</p>
+                    <p className="text-[10px] opacity-40">WAITING FOR MEDIA SIGNAL...</p>
                 </div>
             )}
+
+            <div className="absolute bottom-4 left-4 z-[99]">
+                <span className="bg-black/60 px-2 py-1 rounded-lg text-xs font-bold text-white border border-white/10 italic">
+                    DEBUG-V4.0
+                </span>
+            </div>
+
+            <div className="hidden">
+                <AudioMeter stream={stream} onSpeakingChange={setIsSpeaking} />
+            </div>
         </div>
     )
 }
 
-
-export function LocalVideo({ stream, role = "participant", micOff, cameraOff, name = "Você", handRaised, onSpeakingChange }: VideoProps) {
+export function LocalVideo({ stream, name = "Você", role = "participant", micOff, cameraOff }: VideoProps) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isSpeaking, setIsSpeaking] = useState(false)
+    const [isVideoReady, setIsVideoReady] = useState(false)
 
     useEffect(() => {
         if (videoRef.current && stream) {
             videoRef.current.srcObject = stream
+            videoRef.current.play().then(() => setIsVideoReady(true)).catch(() => { })
         }
     }, [stream])
 
+    // Local is always green if it has a stream
+    const debugBorder = stream ? 'border-cyan-500' : 'border-orange-500'
+
     return (
         <div className={cn(
-            "bg-card rounded-[2.5rem] overflow-hidden relative border-4 shadow-2xl group w-full h-full transition-all duration-500",
-            isSpeaking
-                ? role === 'interpreter'
-                    ? "border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.4)] scale-[1.02] z-10"
-                    : "border-[#06b6d4] shadow-[0_0_40px_rgba(6,182,212,0.4)] scale-[1.02] z-10"
-                : "border-border/30 hover:border-[#06b6d4]/50"
+            "rounded-[2rem] overflow-hidden relative border-[12px] bg-zinc-950 w-full h-full transition-all shadow-2xl",
+            debugBorder
         )}>
-            {!cameraOff && stream ? (
+            {stream ? (
                 <>
-                    <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="w-full h-full object-cover transform -scale-x-100 rounded-[2.3rem]"
-                    />
-
-                    {/* Status Icons */}
-                    <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
-                        {micOff && (
-                            <div className="bg-destructive/80 backdrop-blur-md p-1.5 rounded-lg shadow-lg">
-                                <MicOff className="h-4 w-4 text-white" />
-                            </div>
-                        )}
-                        {handRaised && (
-                            <div className="bg-amber-500 backdrop-blur-md p-1.5 rounded-lg shadow-lg animate-bounce">
-                                <Hand className="h-4 w-4 text-white fill-current" />
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="absolute bottom-4 left-4 flex items-center gap-2">
-                        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 flex items-center gap-2">
-                            <span className="text-xs font-bold text-white tracking-tight">{name} (Local)</span>
-                        </div>
-                    </div>
-
-                    <div className="hidden">
-                        <AudioMeter stream={stream} onSpeakingChange={(s) => {
-                            setIsSpeaking(s)
-                            onSpeakingChange?.(s)
-                        }} />
+                    <video ref={videoRef} playsInline autoPlay muted className="w-full h-full object-cover transform -scale-x-100" />
+                    <div className="absolute inset-x-0 top-0 bg-black/70 p-1 text-[10px] text-white flex justify-between z-[99]">
+                        <span>LOCAL: {name}</span>
+                        <span>TRKS: {stream.getTracks().length}</span>
+                        <span>{isVideoReady ? "PLAYING" : "WAITING"}</span>
                     </div>
                 </>
             ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-accent/10">
-                    <div className="bg-card/50 backdrop-blur-xl border border-border p-8 rounded-[2.5rem] shadow-xl">
-                        <VideoOff className="h-10 w-10 text-muted-foreground opacity-30 mb-4 mx-auto" />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">
-                            {cameraOff ? "Você desligou a câmera" : "Câmera Desligada"}
-                        </p>
-                    </div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
+                    <VideoOff className="h-10 w-10 mb-2 opacity-50" />
+                    <p className="text-[10px] opacity-40">LOCAL CAMERA DISCONNECTED</p>
                 </div>
             )}
+
+            <div className="absolute bottom-4 left-4 z-[99]">
+                <span className="bg-black/60 px-2 py-1 rounded-lg text-xs font-bold text-white border border-white/10 italic">
+                    LOCAL-DEBUG-V4.0
+                </span>
+            </div>
+
+            <div className="hidden">
+                <AudioMeter stream={stream} onSpeakingChange={setIsSpeaking} />
+            </div>
         </div>
     )
 }

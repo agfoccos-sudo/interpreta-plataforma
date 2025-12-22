@@ -47,8 +47,8 @@ export function useGalleryLayout(containerRef: RefObject<HTMLElement | null>, pa
         }
 
         setLayout({
-            width: Math.floor(bestWidth - 8), // Padding allowance
-            height: Math.floor(bestHeight - 8),
+            width: Math.max(200, Math.floor(bestWidth - 8)), // Padding allowance
+            height: Math.max(112, Math.floor(bestHeight - 8)),
             cols: bestCols,
             rows: bestRows,
             count: participantCount
