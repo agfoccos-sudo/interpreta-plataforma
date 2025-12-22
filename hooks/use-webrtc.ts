@@ -29,7 +29,7 @@ export function useWebRTC(
     initialConfig: { micOn?: boolean, cameraOn?: boolean, audioDeviceId?: string, videoDeviceId?: string } = {}
 ) {
     const [localStream, setLocalStream] = useState<MediaStream | null>(null)
-    const [peers, setPeers] = useState<PeerData[]>([]) // Use Array directly in state for reliability
+    const [peers, setPeers] = useState<PeerData[]>([])
     const [logs, setLogs] = useState<string[]>([])
     const [userCount, setUserCount] = useState(0)
     const [mediaError, setMediaError] = useState<string | null>(null)
@@ -45,7 +45,6 @@ export function useWebRTC(
     const originalMicTrackRef = useRef<MediaStreamTrack | null>(null)
 
     const [hostId, setHostId] = useState<string | null>(null)
-
     const peersRef = useRef<Map<string, PeerData>>(new Map())
 
     const addLog = useCallback((msg: string) => {
@@ -126,49 +125,6 @@ export function useWebRTC(
         }
     }, [roomId, userId])
 
-    const joinChannel = (stream: MediaStream | null) => {
-        if (channelRef.current) return
-
-        const newChannel = supabase.channel(`room:${roomId}`, {
-            config: { presence: { key: userId } },
-        })
-
-        channelRef.current = newChannel
-        setChannelState(newChannel)
-
-        newChannel
-            .on('broadcast', { event: 'signal' }, (event) => {
-                handleSignal(event.payload, stream)
-            })
-            .on('broadcast', { event: 'media-toggle' }, (event) => {
-                const { userId: remoteId, kind, enabled } = event.payload
-                updatePeerData(remoteId, kind === 'mic' ? { micOn: enabled } : { cameraOn: enabled })
-            })
-            .on('broadcast', { event: 'metadata-update' }, (event) => {
-                const { userId: remoteId, metadata } = event.payload
-                updatePeerData(remoteId, metadata)
-            })
-            .on('presence', { event: 'sync' }, () => {
-                const state = newChannel.presenceState()
-                const users = Object.keys(state)
-                setUserCount(users.length)
-
-                users.forEach(remoteId => {
-                    if (remoteId === userId) return
-                    if (!peersRef.current.has(remoteId)) {
-                        const shouldInitiate = userId > remoteId
-                        const rState = (state[remoteId] as any[])?.[0] || {}
-                        createPeer(remoteId, shouldInitiate, stream, rState.role || 'participant')
-                    }
-                })
-            })
-            .subscribe(async (status) => {
-                if (status === 'SUBSCRIBED') {
-                    await newChannel.track({ userId, role: userRole, micOn: true, cameraOn: true })
-                }
-            })
-    }
-
     const createPeer = (targetUserId: string, initiator: boolean, stream: MediaStream | null, targetRole: string) => {
         if (peersRef.current.has(targetUserId)) return peersRef.current.get(targetUserId)!.peer
 
@@ -190,7 +146,6 @@ export function useWebRTC(
                     sender: userId,
                     signal,
                     role: userRole,
-                    // Restoration of metadata
                     metadata: { name: 'Participante', role: userRole }
                 }
             })
@@ -206,12 +161,34 @@ export function useWebRTC(
             updatePeerData(targetUserId, { stream: remoteStream, connectionState: 'connected' })
         })
 
+        peer.on('track', (track, stream) => {
+            if (track.kind === 'video') {
+                const videoTracks = stream.getVideoTracks()
+                if (videoTracks.length > 1 && track.id === videoTracks[videoTracks.length - 1].id) {
+                    addLog(`Detected secondary video track (Presentation) from ${targetUserId}`)
+                    const presentationId = `${targetUserId}-presentation`
+                    peersRef.current.set(presentationId, {
+                        peer,
+                        stream: new MediaStream([track]),
+                        userId: presentationId,
+                        role: 'presentation',
+                        name: `Apresentação`,
+                        isPresentation: true,
+                        parentUserId: targetUserId,
+                        connectionState: 'connected'
+                    })
+                    syncToState()
+                }
+            }
+        })
+
         peer.on('close', () => {
             addLog(`Connection closed: ${targetUserId}`)
             const p = peersRef.current.get(targetUserId)
             if (p) {
                 p.peer.destroy()
                 peersRef.current.delete(targetUserId)
+                peersRef.current.delete(`${targetUserId}-presentation`)
                 syncToState()
             }
         })
@@ -243,6 +220,103 @@ export function useWebRTC(
         }
     }
 
+    const joinChannel = (stream: MediaStream | null) => {
+        if (channelRef.current) return
+        const newChannel = supabase.channel(`room:${roomId}`, { config: { presence: { key: userId } } })
+        channelRef.current = newChannel
+        setChannelState(newChannel)
+
+        newChannel
+            .on('broadcast', { event: 'signal' }, (event) => handleSignal(event.payload, stream))
+            .on('broadcast', { event: 'media-toggle' }, (event) => {
+                const { userId: remoteId, kind, enabled } = event.payload
+                updatePeerData(remoteId, kind === 'mic' ? { micOn: enabled } : { cameraOn: enabled })
+            })
+            .on('presence', { event: 'sync' }, () => {
+                const state = newChannel.presenceState()
+                const users = Object.keys(state)
+                setUserCount(users.length)
+                users.forEach(remoteId => {
+                    if (remoteId === userId) return
+                    if (!peersRef.current.has(remoteId)) {
+                        createPeer(remoteId, userId > remoteId, stream, (state[remoteId] as any[])?.[0]?.role || 'participant')
+                    }
+                })
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') await newChannel.track({ userId, role: userRole, micOn: true, cameraOn: true })
+            })
+    }
+
+    const shareScreen = async (onEnd?: () => void) => {
+        try {
+            addLog("Requesting Screen Share...")
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+            const screenTrack = screenStream.getVideoTracks()[0]
+
+            if (localStream) {
+                localStream.addTrack(screenTrack)
+                peersRef.current.forEach(p => {
+                    if (!p.isPresentation) p.peer.addTrack(screenTrack, localStream)
+                })
+            }
+
+            screenTrack.onended = () => {
+                addLog("Screen share ended.")
+                stopScreenShare(onEnd)
+            }
+            return screenStream
+        } catch (e: any) {
+            addLog(`Screen share error: ${e.message}`)
+            onEnd?.()
+        }
+    }
+
+    const stopScreenShare = (onEnd?: () => void) => {
+        if (!localStream) return
+        const screenTrack = localStream.getVideoTracks().find(t => t.label.toLowerCase().includes('screen') || t.readyState === 'live' && t.id !== localStream.getVideoTracks()[0]?.id)
+        if (screenTrack) {
+            screenTrack.stop()
+            localStream.removeTrack(screenTrack)
+            peersRef.current.forEach(p => {
+                if (!p.isPresentation) try { p.peer.removeTrack(screenTrack, localStream) } catch (e) { }
+            })
+        }
+        onEnd?.()
+    }
+
+    const shareVideoFile = async (file: File, onEnd?: () => void) => {
+        try {
+            addLog(`Sharing Video File: ${file.name}`)
+            const video = document.createElement('video')
+            video.src = URL.createObjectURL(file)
+            video.muted = true
+            await video.play()
+
+            const fileStream = (video as any).captureStream ? (video as any).captureStream() : (video as any).mozCaptureStream()
+            const fileTrack = fileStream.getVideoTracks()[0]
+
+            if (localStream) {
+                localStream.addTrack(fileTrack)
+                peersRef.current.forEach(p => {
+                    if (!p.isPresentation) p.peer.addTrack(fileTrack, localStream)
+                })
+            }
+
+            video.onended = () => {
+                addLog("Video file share ended.")
+                stopScreenShare(onEnd)
+            }
+        } catch (e: any) {
+            addLog(`Video share error: ${e.message}`)
+            onEnd?.()
+        }
+    }
+
+    const switchDevice = async (kind: 'audio' | 'video', deviceId: string) => {
+        addLog(`Switching ${kind} to ${deviceId}`)
+    }
+
     const toggleMic = (enabled: boolean) => {
         localStream?.getAudioTracks().forEach(t => t.enabled = enabled)
         channelRef.current?.send({ type: 'broadcast', event: 'media-toggle', payload: { userId, kind: 'mic', enabled } })
@@ -255,7 +329,7 @@ export function useWebRTC(
 
     return {
         localStream,
-        peers, // Directly use state array
+        peers,
         logs,
         userCount,
         mediaError,
@@ -266,11 +340,11 @@ export function useWebRTC(
         channel: channelState,
         hostId,
         isHost: hostId === userId,
-        shareScreen: async (onEnd?: () => void) => { addLog("Placeholder scaleShare"); return undefined },
-        stopScreenShare: async (onEnd?: () => void) => { addLog("Placeholder stopScreenShare") },
-        switchDevice: async (k: any, d: any) => { },
+        shareScreen,
+        stopScreenShare,
+        switchDevice,
         sendEmoji: (e: string) => { },
-        shareVideoFile: async (f: File, onEnd?: () => void) => { addLog("Placeholder shareVideoFile") },
+        shareVideoFile,
         toggleHand: () => { },
         updateMetadata: (m: any) => { },
         promoteToHost: (id: string) => { }
