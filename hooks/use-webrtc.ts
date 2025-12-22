@@ -58,6 +58,19 @@ export function useWebRTC(
     const peersRef = useRef<Map<string, PeerData>>(new Map())
     const [sharingUserId, setSharingUserId] = useState<string | null>(null)
 
+    // Force Opus to Music Mode (High fidelity, Stereo, CBR)
+    const optimizeSdp = (sdp: string) => {
+        try {
+            return sdp.replace(/a=fmtp:(\d+) (.+)/g, (match, pt, params) => {
+                if (sdp.includes(`a=rtpmap:${pt} opus/48000/2`)) {
+                    // Force stereo, max bitrate, disable DTX/VAD (useinbandfec=1; cbr=1)
+                    return `a=fmtp:${pt} ${params};stereo=1;sprop-stereo=1;maxaveragebitrate=510000;useinbandfec=1;cbr=1`
+                }
+                return match
+            })
+        } catch (e) { return sdp }
+    }
+
     const syncToState = useCallback(() => {
         setPeers(Array.from(peersRef.current.values()))
     }, [])
@@ -140,7 +153,13 @@ export function useWebRTC(
 
     const createPeer = (targetUserId: string, initiator: boolean, stream: MediaStream | null, targetRole: string, targetName: string = 'Participante') => {
         if (peersRef.current.get(targetUserId)) return peersRef.current.get(targetUserId)!.peer
-        const peer = new SimplePeer({ initiator, trickle: true, stream: stream || undefined, config: { iceServers: iceServersRef.current } })
+        const peer = new SimplePeer({
+            initiator,
+            trickle: true,
+            stream: stream || undefined,
+            config: { iceServers: iceServersRef.current },
+            sdpTransform: optimizeSdp // Apply Music Mode SDP Hack
+        })
         peer.on('signal', (signal) => {
             channelRef.current?.send({
                 type: 'broadcast',
