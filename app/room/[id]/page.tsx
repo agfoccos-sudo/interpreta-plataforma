@@ -193,12 +193,14 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         sendEmoji,
         shareVideoFile,
         toggleHand,
-        localHandRaised,
-        reactions,
-        hostId,
-        promoteToHost,
+        localHandRaised: webRTCLocalHandRaised, // Rename to avoid collision
         isHost,
-        logs // NEW
+        sharingUserId, // NEW
+        isAnySharing, // NEW
+        logs,
+        reactions,
+        hostId, // Restore hostId
+        promoteToHost // Restore promoteToHost
     } = useWebRTC(roomId, userId, currentRole, lobbyConfig || {})
 
     // Populate Device Lists
@@ -446,7 +448,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         localUserName={userName}
                         selectedLang={selectedLang}
                         volumeBalance={volumeBalance}
-                        handRaised={localHandRaised}
+                        handRaised={webRTCLocalHandRaised}
                     />
 
                     {/* Pagination Controls */}
@@ -664,11 +666,13 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             <Button
                                 variant={isSharing ? "default" : "secondary"}
                                 size="icon"
+                                disabled={isAnySharing && !isSharing}
                                 className={cn(
                                     "h-14 w-14 rounded-2xl shadow-xl transition-all active:scale-95 border-0 hidden md:flex",
-                                    isSharing ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20 animate-pulse" : "bg-accent/50 text-foreground hover:bg-accent"
+                                    isSharing ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20 animate-pulse" : "bg-accent/50 text-foreground hover:bg-accent",
+                                    isAnySharing && !isSharing && "opacity-50 cursor-not-allowed grayscale"
                                 )}
-                                title="Compartilhar"
+                                title={isAnySharing && !isSharing ? "Sala Ocupada" : "Compartilhar"}
                             >
                                 <Monitor className="h-6 w-6" />
                             </Button>
@@ -713,16 +717,16 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
                     {/* Raised Hand */}
                     <Button
-                        variant={localHandRaised ? "default" : "secondary"}
+                        variant={webRTCLocalHandRaised ? "default" : "secondary"}
                         size="icon"
                         className={cn(
                             "h-14 w-14 rounded-2xl shadow-xl transition-all active:scale-95 border-0",
-                            localHandRaised ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20" : "bg-accent/50 text-foreground hover:bg-accent"
+                            webRTCLocalHandRaised ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20" : "bg-accent/50 text-foreground hover:bg-accent"
                         )}
                         onClick={toggleHand}
                         title="Levantar a Mão"
                     >
-                        <Hand className={cn("h-6 w-6", localHandRaised && "animate-bounce")} />
+                        <Hand className={cn("h-6 w-6", webRTCLocalHandRaised && "animate-bounce")} />
                     </Button>
 
                     {/* Reactions Menu */}

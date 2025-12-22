@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/client'
 import '@/lib/polyfills'
 import SimplePeer from 'simple-peer'
 import { RealtimeChannel } from '@supabase/supabase-js'
-import { playNotificationSound } from '@/lib/audio-effects'
 
 interface PeerData {
     peer: SimplePeer.Instance
@@ -44,8 +43,12 @@ export function useWebRTC(
     const videoElementRef = useRef<HTMLVideoElement | null>(null)
     const originalMicTrackRef = useRef<MediaStreamTrack | null>(null)
 
+    // MIXER REF
     const [hostId, setHostId] = useState<string | null>(null)
     const peersRef = useRef<Map<string, PeerData>>(new Map())
+
+    // V8.1 SHARING LOCK STATE
+    const [sharingUserId, setSharingUserId] = useState<string | null>(null)
 
     const addLog = useCallback((msg: string) => {
         console.log(`[useWebRTC] ${msg}`)
@@ -205,10 +208,16 @@ export function useWebRTC(
                     newPeer?.signal(signal)
                 }
             })
+            .on('broadcast', { event: 'share-started' }, (event) => {
+                const { sender } = event.payload
+                addLog(`Sharing started by ${sender}`)
+                setSharingUserId(sender)
+            })
             .on('broadcast', { event: 'share-ended' }, (event) => {
                 const { sender } = event.payload
-                addLog(`Presentation ended by ${sender}`)
+                addLog(`Sharing ended by ${sender}`)
                 peersRef.current.delete(`${sender}-presentation`)
+                setSharingUserId(null)
                 syncToState()
             })
             .on('presence', { event: 'sync' }, () => {
@@ -226,7 +235,7 @@ export function useWebRTC(
             })
     }
 
-    // AUDIO MIXER V7.0
+    // ROBUST AUDIO MIXER V8.1
     const mixAudio = async (contentStream: MediaStream) => {
         if (!originalMicTrackRef.current) return contentStream.getAudioTracks()[0]
 
@@ -239,34 +248,28 @@ export function useWebRTC(
 
             const dest = ctx.createMediaStreamDestination()
 
-            // Channel 1: Mic
-            const micStream = new MediaStream([originalMicTrackRef.current])
-            const micSource = ctx.createMediaStreamSource(micStream)
-            const micGain = ctx.createGain()
-            micGain.gain.value = 1.0
-            micSource.connect(micGain)
-            micGain.connect(dest)
+            // MIC
+            const micSource = ctx.createMediaStreamSource(new MediaStream([originalMicTrackRef.current]))
+            micSource.connect(dest)
 
-            // Channel 2: System/Video Audio
+            // CONTENT
             if (contentStream.getAudioTracks().length > 0) {
                 const contentSource = ctx.createMediaStreamSource(contentStream)
-                const contentGain = ctx.createGain()
-                contentGain.gain.value = 1.0 // Full volume
-                contentSource.connect(contentGain)
-                contentGain.connect(dest)
-                addLog("Audio Mixer: Mixed Mic + Content Tracks")
+                contentSource.connect(dest)
+                addLog("Audio Mixer V8.1: Combined Voice + Content")
             }
 
             return dest.stream.getAudioTracks()[0]
         } catch (e) {
-            addLog("Mixer Error, using content track only")
+            addLog("Mixer Error V8.1")
             return contentStream.getAudioTracks()[0]
         }
     }
 
     const shareScreen = async (onEnd?: () => void) => {
+        if (sharingUserId && sharingUserId !== userId) return
         try {
-            addLog("Requesting Screen Share...")
+            addLog("Requesting Screen Share V8.1...")
             const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
             const screenTrack = screenStream.getVideoTracks()[0]
             const mixedTrack = await mixAudio(screenStream)
@@ -275,13 +278,16 @@ export function useWebRTC(
                 localStream.addTrack(screenTrack)
                 peersRef.current.forEach(p => {
                     if (!p.isPresentation) {
-                        p.peer.addTrack(screenTrack, localStream)
+                        try { p.peer.addTrack(screenTrack, localStream) } catch (e) { }
                         if (mixedTrack && originalMicTrackRef.current) {
                             try { p.peer.replaceTrack(originalMicTrackRef.current, mixedTrack, localStream) } catch (e) { }
                         }
                     }
                 })
             }
+
+            setSharingUserId(userId)
+            channelRef.current?.send({ type: 'broadcast', event: 'share-started', payload: { sender: userId } })
 
             screenTrack.onended = () => stopScreenShare(onEnd, mixedTrack)
             return screenStream
@@ -293,7 +299,6 @@ export function useWebRTC(
 
     const stopScreenShare = (onEnd?: () => void, mixedTrack?: MediaStreamTrack) => {
         if (!localStream) return
-
         const tracks = localStream.getVideoTracks()
         const primaryId = localStream.getVideoTracks()[0]?.id
         const screenTrack = tracks.find(t => t.id !== primaryId)
@@ -311,20 +316,19 @@ export function useWebRTC(
             })
         }
 
-        // SIGNAL TO OTHERS TO CLEAR UI
+        setSharingUserId(null)
         channelRef.current?.send({ type: 'broadcast', event: 'share-ended', payload: { sender: userId } })
         onEnd?.()
-        addLog("Sharing Stopped & Cleaned")
+        addLog("Sharing Stopped V8.1")
     }
 
     const shareVideoFile = async (file: File, onEnd?: () => void) => {
+        if (sharingUserId && sharingUserId !== userId) return
         try {
-            addLog(`Sharing Video: ${file.name}`)
             const video = document.createElement('video')
             video.src = URL.createObjectURL(file)
             video.muted = true
             video.playsInline = true
-            videoElementRef.current = video
             await video.play()
 
             const fileStream = (video as any).captureStream ? (video as any).captureStream() : (video as any).mozCaptureStream()
@@ -335,13 +339,16 @@ export function useWebRTC(
                 localStream.addTrack(fileTrack)
                 peersRef.current.forEach(p => {
                     if (!p.isPresentation) {
-                        p.peer.addTrack(fileTrack, localStream)
+                        try { p.peer.addTrack(fileTrack, localStream) } catch (e) { }
                         if (mixedTrack && originalMicTrackRef.current) {
                             try { p.peer.replaceTrack(originalMicTrackRef.current, mixedTrack, localStream) } catch (e) { }
                         }
                     }
                 })
             }
+
+            setSharingUserId(userId)
+            channelRef.current?.send({ type: 'broadcast', event: 'share-started', payload: { sender: userId } })
 
             video.onended = () => stopScreenShare(onEnd, mixedTrack)
         } catch (e: any) {
@@ -350,32 +357,26 @@ export function useWebRTC(
         }
     }
 
-    const toggleMic = (enabled: boolean) => {
-        localStream?.getAudioTracks().forEach(t => t.enabled = enabled)
-    }
-
-    const toggleCamera = (enabled: boolean) => {
-        localStream?.getVideoTracks().forEach(t => t.enabled = enabled)
-    }
-
     return {
         localStream,
         peers,
         logs,
         userCount,
-        toggleMic,
-        toggleCamera,
+        toggleMic: (e: boolean) => { localStream?.getAudioTracks().forEach(t => t.enabled = e) },
+        toggleCamera: (e: boolean) => { localStream?.getVideoTracks().forEach(t => t.enabled = e) },
         shareScreen,
         stopScreenShare: () => stopScreenShare(),
         shareVideoFile,
         hostId,
         isHost: hostId === userId,
+        sharingUserId,
+        isAnySharing: !!sharingUserId,
         channel: channelState,
-        switchDevice: async (k: any, d: any) => { },
-        sendEmoji: (e: string) => { },
-        toggleHand: () => { },
-        updateMetadata: (m: any) => { },
-        promoteToHost: (id: string) => { },
+        switchDevice: async (k: any, d: any) => { addLog(`Switching ${k}`) },
+        sendEmoji: (e: string) => { addLog(`Emoji ${e}`) },
+        toggleHand: () => { setLocalHandRaised(!localHandRaised) },
+        updateMetadata: (m: any) => { addLog(`Metadata update`) },
+        promoteToHost: (id: string) => { addLog(`Promoting ${id}`) },
         mediaError,
         reactions,
         localHandRaised
