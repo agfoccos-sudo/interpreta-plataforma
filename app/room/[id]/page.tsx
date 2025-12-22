@@ -158,6 +158,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     const [volumeBalance, setVolumeBalance] = useState(20)
     const [myBroadcastLang, setMyBroadcastLang] = useState('floor')
     const [showLangMenu, setShowLangMenu] = useState(false)
+    const [attentionToast, setAttentionToast] = useState<{ id: string, name: string } | null>(null)
     const [activeSidebar, setActiveSidebar] = useState<'chat' | 'participants' | null>(null)
     const [isSharing, setIsSharing] = useState(false)
     const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([])
@@ -273,7 +274,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         }
     }, [peers, isSharing])
 
-    const { messages, sendMessage, unreadCount, markAsRead, setIsActive: setIsChatActive } = useChat(roomId, userId, currentRole)
+    const { messages, sendMessage, unreadCount, markAsRead, setIsActive: setIsChatActive } = useChat(roomId, userId, currentRole, userName)
 
     useEffect(() => {
         if (activeSidebar === 'chat') {
@@ -291,6 +292,9 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
             const wasRaised = prevPeersHandRef.current[p.userId]
             if (p.handRaised && !wasRaised) {
                 // NEW HAND RAISED
+                setAttentionToast({ id: p.userId, name: p.name || 'Alguém' })
+                setTimeout(() => setAttentionToast(null), 5000)
+
                 const audio = new Audio('/sounds/notification.mp3') // Assume existance or fallback to synth
                 audio.play().catch(() => {
                     // Fallback to synth if file not found
@@ -549,6 +553,26 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                     )}
                 </AnimatePresence>
             </div>
+
+            {/* Attention Toast (Chamada de Atenção) */}
+            <AnimatePresence>
+                {attentionToast && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -50, x: '-50%' }}
+                        animate={{ opacity: 1, y: 0, x: '-50%' }}
+                        exit={{ opacity: 0, y: -20, x: '-50%' }}
+                        className="fixed top-8 left-1/2 z-[100] bg-amber-500 text-white px-6 py-4 rounded-[2rem] shadow-2xl border-4 border-white/20 flex items-center gap-4"
+                    >
+                        <div className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center animate-bounce">
+                            <Hand className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                            <div className="text-[10px] font-black uppercase tracking-widest opacity-70">Atenção</div>
+                            <div className="text-lg font-black">{attentionToast.name} levantou a mão!</div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Error Banner */}
             {mediaError && (

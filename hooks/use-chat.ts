@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 export interface Message {
     id: string
     sender: string
+    senderName?: string
     text: string
     timestamp: number
     role: string
@@ -35,12 +36,13 @@ function playNotificationSound() {
     }
 }
 
-export function useChat(roomId: string, userId: string, userRole: string) {
+export function useChat(roomId: string, userId: string, userRole: string, userName: string) {
     const [messages, setMessages] = useState<Message[]>([])
     const [unreadCount, setUnreadCount] = useState(0)
     const [isActive, setIsActive] = useState(false)
     const isActiveRef = useRef(false)
     const supabase = createClient()
+    const channelRef = useRef<any>(null)
 
     // Keep ref in sync
     useEffect(() => {
@@ -62,6 +64,7 @@ export function useChat(roomId: string, userId: string, userRole: string) {
                 const mapped: Message[] = data.map((d: any) => ({
                     id: d.id,
                     sender: d.sender_id,
+                    senderName: d.sender_name,
                     text: d.content,
                     timestamp: new Date(d.created_at).getTime(),
                     role: d.role
@@ -71,9 +74,11 @@ export function useChat(roomId: string, userId: string, userRole: string) {
         }
         fetchHistory()
 
-        // 2. Subscribe to NEW additions (Realtime)
-        const channel = supabase
-            .channel(`room-chat:${roomId}`)
+        // 2. Subscribe to NEW additions (Realtime & Broadcast Fallback)
+        const channel = supabase.channel(`room-chat:${roomId}`)
+        channelRef.current = channel
+
+        channel
             .on(
                 'postgres_changes',
                 {
@@ -89,6 +94,7 @@ export function useChat(roomId: string, userId: string, userRole: string) {
                     const msg: Message = {
                         id: newMsg.id,
                         sender: newMsg.sender_id,
+                        senderName: newMsg.sender_name,
                         text: newMsg.content,
                         timestamp: new Date(newMsg.created_at).getTime(),
                         role: newMsg.role
@@ -106,9 +112,23 @@ export function useChat(roomId: string, userId: string, userRole: string) {
                     }
                 }
             )
+            .on('broadcast', { event: 'chat-message' }, (payload) => {
+                const msg = payload.payload as Message
+                if (msg.sender === userId) return // Ignore own
+
+                setMessages(prev => {
+                    if (prev.some(m => m.id === msg.id)) return prev
+                    return [...prev, msg]
+                })
+
+                if (!isActiveRef.current) {
+                    setUnreadCount(prev => prev + 1)
+                    playNotificationSound()
+                }
+            })
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
-                    console.log('Chat subscribed to room:', roomId)
+                    console.log('Chat (Hybrid) subscribed to room:', roomId)
                 }
             })
 
@@ -120,27 +140,37 @@ export function useChat(roomId: string, userId: string, userRole: string) {
     const sendMessage = async (text: string) => {
         if (!text.trim()) return
 
-        // Optimistic UI update
-        const tempId = Math.random().toString()
-        const optimisticMsg: Message = {
-            id: tempId,
+        const msg: Message = {
+            id: Math.random().toString(36).substr(2, 9),
             sender: userId,
+            senderName: userName,
             text,
             timestamp: Date.now(),
             role: userRole
         }
-        setMessages(prev => [...prev, optimisticMsg])
 
-        // Insert into DB
-        const { error } = await supabase.from('messages').insert({
-            room_id: roomId,
-            sender_id: userId,
-            content: text,
-            role: userRole
+        // 1. Optimistic local update
+        setMessages(prev => [...prev, msg])
+
+        // 2. Broadcast for real-time (Ensures Guest delivery)
+        channelRef.current?.send({
+            type: 'broadcast',
+            event: 'chat-message',
+            payload: msg
         })
 
-        if (error) {
-            console.error("Failed to send message:", error)
+        // 3. Persistent storage
+        try {
+            const { error } = await supabase.from('messages').insert({
+                room_id: roomId,
+                sender_id: userId,
+                sender_name: userName, // Added field
+                content: text,
+                role: userRole
+            })
+            if (error) console.error("DB Chat Insert failed (Guest?):", error)
+        } catch (e) {
+            console.error("Chat Insert exception:", e)
         }
     }
 
