@@ -32,6 +32,14 @@ export function useWebRTC(
 ) {
     const [localStream, setLocalStream] = useState<MediaStream | null>(null)
     const [peers, setPeers] = useState<PeerData[]>([])
+    const metadataRef = useRef<any>({
+        name: userName,
+        role: userRole,
+        micOn: initialConfig.micOn !== false,
+        cameraOn: initialConfig.cameraOn !== false,
+        handRaised: false,
+        language: 'floor'
+    })
     const [userCount, setUserCount] = useState(0)
     const [mediaError, setMediaError] = useState<string | null>(null)
     const iceServersRef = useRef<any[]>([{ urls: 'stun:stun.l.google.com:19302' }])
@@ -104,7 +112,10 @@ export function useWebRTC(
                 setLocalStream(stream)
                 originalMicTrackRef.current = stream.getAudioTracks()[0]
                 const { data: meeting } = await supabase.from('meetings').select('host_id').eq('id', roomId).single()
-                if (meeting?.host_id && mounted) setHostId(meeting.host_id)
+                if (meeting?.host_id && mounted) {
+                    setHostId(meeting.host_id)
+                    metadataRef.current.isHost = meeting.host_id === userId
+                }
 
                 // ONLY JOIN CHANNEL IF isJoined IS TRUE (Lobby fix v11.0)
                 if (mounted && isJoined) joinChannel(stream)
@@ -221,14 +232,10 @@ export function useWebRTC(
             })
             .subscribe(async (status) => {
                 if (status === 'SUBSCRIBED') {
-                    await newChannel.track({
-                        userId,
-                        role: userRole,
-                        name: userName,
-                        micOn: initialConfig.micOn !== false,
-                        cameraOn: initialConfig.cameraOn !== false,
-                        handRaised: false
-                    })
+                    // Include host status in initial track if known
+                    const isHost = hostId === userId || metadataRef.current.isHost
+                    metadataRef.current = { ...metadataRef.current, isHost }
+                    await newChannel.track(metadataRef.current)
                 }
             })
     }
@@ -252,19 +259,14 @@ export function useWebRTC(
     const toggleHand = () => {
         const newState = !localHandRaised
         setLocalHandRaised(newState)
-        channelRef.current?.track({ userId, role: userRole, name: userName, micOn: localStream?.getAudioTracks()[0]?.enabled, cameraOn: localStream?.getVideoTracks()[0]?.enabled, handRaised: newState })
+        updateMetadata({ handRaised: newState })
     }
 
     const updateMetadata = (patch: any) => {
-        channelRef.current?.track({
-            userId,
-            role: userRole,
-            name: userName,
-            micOn: localStream?.getAudioTracks()[0]?.enabled,
-            cameraOn: localStream?.getVideoTracks()[0]?.enabled,
-            handRaised: localHandRaised,
-            ...patch
-        })
+        metadataRef.current = { ...metadataRef.current, ...patch }
+        if (channelRef.current && isJoined) {
+            channelRef.current.track(metadataRef.current)
+        }
     }
 
     // React to identity changes (e.g. Admin name loading late)

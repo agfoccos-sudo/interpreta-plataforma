@@ -68,11 +68,25 @@ export function VideoGrid({
     const calcVolume = (p: any) => {
         if (p.isLocal) return 0
         const r = (p.role || '').toLowerCase()
-        const isInt = r.includes('interpreter') || r.includes('admin')
+        const isInt = r.includes('interpreter') || r.includes('admin') || p.isHost
+        const isBroadcastingTranslation = isInt && p.language && p.language !== 'floor' && p.language !== 'original'
 
-        if (selectedLang === 'original' || selectedLang === 'floor') return isInt ? 0 : 1.0
-        if (isInt && p.language === selectedLang) return volumeBalance / 100
-        if (isInt && p.language !== selectedLang) return 0
+        // If listener wants "Original Audio"
+        if (selectedLang === 'original' || selectedLang === 'floor') {
+            // Mute them ONLY if they are actually in "Interpretation Mode" (broadcasting to a specific channel)
+            return isBroadcastingTranslation ? 0 : 1.0
+        }
+
+        // If listener selected a specific translation channel (e.g., English)
+        if (isBroadcastingTranslation && p.language === selectedLang) {
+            return volumeBalance / 100 // High volume for the correct translator
+        }
+
+        if (isBroadcastingTranslation && p.language !== selectedLang) {
+            return 0 // Mute translators of other languages
+        }
+
+        // Floor audio (ducked if a translation is selected)
         return (100 - volumeBalance) / 100
     }
 
