@@ -89,10 +89,18 @@ export function useWebRTC(
                     const data = await res.json()
                     if (data.iceServers) iceServersRef.current = data.iceServers
                 } catch (e) { }
-                const constraints = { audio: initialConfig.micOn !== false, video: initialConfig.cameraOn !== false }
+                const constraints = {
+                    audio: initialConfig.micOn !== false ? { deviceId: initialConfig.audioDeviceId ? { exact: initialConfig.audioDeviceId } : undefined } : true,
+                    video: initialConfig.cameraOn !== false ? { deviceId: initialConfig.videoDeviceId ? { exact: initialConfig.videoDeviceId } : undefined } : true
+                }
                 const stream = await navigator.mediaDevices.getUserMedia(constraints)
                 activeStream = stream
                 if (!mounted) { stream.getTracks().forEach(t => t.stop()); return }
+
+                // Mute tracks if they should be off initially (getUserMedia might return them on by default)
+                if (initialConfig.micOn === false) stream.getAudioTracks().forEach(t => t.enabled = false);
+                if (initialConfig.cameraOn === false) stream.getVideoTracks().forEach(t => t.enabled = false);
+
                 setLocalStream(stream)
                 originalMicTrackRef.current = stream.getAudioTracks()[0]
                 const { data: meeting } = await supabase.from('meetings').select('host_id').eq('id', roomId).single()

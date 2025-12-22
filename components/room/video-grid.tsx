@@ -67,9 +67,12 @@ export function VideoGrid({
 
     const calcVolume = (p: any) => {
         if (p.isLocal) return 0
-        if (selectedLang === 'original' || selectedLang === 'floor') return p.role === 'interpreter' ? 0 : 1.0
-        if (p.role === 'interpreter' && p.language === selectedLang) return volumeBalance / 100
-        if (p.role === 'interpreter' && p.language !== selectedLang) return 0
+        const r = (p.role || '').toLowerCase()
+        const isInt = r.includes('interpreter') || r.includes('admin')
+
+        if (selectedLang === 'original' || selectedLang === 'floor') return isInt ? 0 : 1.0
+        if (isInt && p.language === selectedLang) return volumeBalance / 100
+        if (isInt && p.language !== selectedLang) return 0
         return (100 - volumeBalance) / 100
     }
 
