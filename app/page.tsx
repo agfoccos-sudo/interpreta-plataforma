@@ -157,12 +157,13 @@ export default function LandingPage() {
         <section className="py-10 border-y border-white/5 bg-white/[0.02]">
           <div className="container mx-auto px-6 text-center">
             <p className="text-sm text-gray-500 uppercase tracking-widest mb-8">Confiança de líderes globais</p>
-            <div className="flex flex-wrap justify-center items-center gap-12 grayscale opacity-50 hover:opacity-100 transition-opacity duration-500">
-              {/* Placeholder Logos */}
-              <div className="text-xl font-bold text-white flex items-center gap-2"><ShieldCheck className="w-6 h-6" /> GlobalCorp</div>
-              <div className="text-xl font-bold text-white flex items-center gap-2"><Globe className="w-6 h-6" /> TechSummit</div>
-              <div className="text-xl font-bold text-white flex items-center gap-2"><Zap className="w-6 h-6" /> FutureGov</div>
-              <div className="text-xl font-bold text-white flex items-center gap-2"><Headphones className="w-6 h-6" /> Interpret.io</div>
+            <div className="flex flex-wrap justify-center items-center gap-12">
+              {/* Logos */}
+              <img src="/logos/vale.png" alt="Vale" className="h-12 w-auto object-contain grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all duration-500" />
+              <img src="/logos/bndes.png" alt="BNDES" className="h-16 w-auto object-contain grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all duration-500" />
+              <img src="/logos/petrobras.png" alt="Petrobras" className="h-8 w-auto object-contain grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all duration-500" />
+              <img src="/logos/logo4.png" alt="Partner" className="h-10 w-auto object-contain grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all duration-500" />
+              <img src="/logos/bbc.png" alt="BBC" className="h-10 w-auto object-contain grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all duration-500" />
             </div>
           </div>
         </section>
