@@ -284,6 +284,31 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         }
     }, [activeSidebar, unreadCount])
 
+    // Chamada de Atenção (Hand Raise Notification)
+    const prevPeersHandRef = useRef<{ [key: string]: boolean }>({})
+    useEffect(() => {
+        peers.forEach(p => {
+            const wasRaised = prevPeersHandRef.current[p.userId]
+            if (p.handRaised && !wasRaised) {
+                // NEW HAND RAISED
+                const audio = new Audio('/sounds/notification.mp3') // Assume existance or fallback to synth
+                audio.play().catch(() => {
+                    // Fallback to synth if file not found
+                    try {
+                        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+                        const osc = ctx.createOscillator()
+                        const gain = ctx.createGain()
+                        osc.connect(gain); gain.connect(ctx.destination)
+                        osc.frequency.setValueAtTime(880, ctx.currentTime)
+                        gain.gain.setValueAtTime(0.1, ctx.currentTime)
+                        osc.start(); osc.stop(ctx.currentTime + 0.2)
+                    } catch (e) { }
+                })
+            }
+            prevPeersHandRef.current[p.userId] = !!p.handRaised
+        })
+    }, [peers])
+
     const handleToggleMic = () => {
         const newState = !micOn
         setMicOn(newState)

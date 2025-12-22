@@ -73,7 +73,7 @@ export function useChat(roomId: string, userId: string, userRole: string) {
 
         // 2. Subscribe to NEW additions (Realtime)
         const channel = supabase
-            .channel(`db-messages:${roomId}`)
+            .channel(`room-chat:${roomId}`)
             .on(
                 'postgres_changes',
                 {
@@ -84,6 +84,8 @@ export function useChat(roomId: string, userId: string, userRole: string) {
                 },
                 (payload) => {
                     const newMsg = payload.new as any
+                    if (!newMsg) return
+
                     const msg: Message = {
                         id: newMsg.id,
                         sender: newMsg.sender_id,
@@ -104,7 +106,11 @@ export function useChat(roomId: string, userId: string, userRole: string) {
                     }
                 }
             )
-            .subscribe()
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('Chat subscribed to room:', roomId)
+                }
+            })
 
         return () => {
             channel.unsubscribe()
