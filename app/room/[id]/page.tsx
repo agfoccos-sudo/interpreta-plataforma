@@ -433,9 +433,9 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
             </div>
 
             {/* Main Layout (Flex Row) */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex overflow-hidden relative">
                 {/* Video Grid Section */}
-                <div className="flex-1 p-2 md:p-6 flex items-center justify-center transition-all duration-300 relative">
+                <div className="flex-1 min-w-0 p-2 md:p-6 flex items-center justify-center transition-all duration-300 relative">
                     <VideoGrid
                         peers={paginatedPeers}
                         localStream={localStream}
@@ -489,7 +489,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: '100%', opacity: 0 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="absolute md:relative inset-0 md:inset-auto z-[60] md:z-30 w-full md:w-auto"
+                            className="absolute md:relative inset-y-0 right-0 md:inset-auto z-[60] md:z-10 w-full md:w-80 shrink-0 border-l border-border/10 bg-card"
                         >
                             <div className="h-full w-full md:w-80">
                                 <ChatPanel
@@ -507,7 +507,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: '100%', opacity: 0 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="absolute md:relative inset-0 md:inset-auto z-[60] md:z-30 w-full md:w-auto"
+                            className="absolute md:relative inset-y-0 right-0 md:inset-auto z-[60] md:z-10 w-full md:w-80 shrink-0 border-l border-border/10 bg-card"
                         >
                             <div className="h-full w-full md:w-80">
                                 <ParticipantList
@@ -594,7 +594,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
             {/* Bottom Control Bar */}
             <div className="h-24 md:h-28 bg-card/60 backdrop-blur-3xl border-t border-border flex items-center justify-start md:justify-center gap-4 md:gap-6 relative z-[50] px-4 md:px-10 overflow-x-auto no-scrollbar pb-safe">
-                <div className="flex items-center gap-4 shrink-0 mx-auto">
+                <div className="flex items-center gap-2 md:gap-4 shrink-0">
                     {/* Mic Control */}
                     <div className="flex items-center gap-0.5 bg-background/50 backdrop-blur rounded-2xl p-1 border border-border/50 shadow-sm group hover:border-[#06b6d4]/50 transition-colors">
                         <Button
