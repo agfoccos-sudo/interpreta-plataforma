@@ -582,27 +582,21 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
 
             {/* Interpreter Console (Central Cockpit) */}
+            {/* Interpreter Console (Unified Strip) */}
             {(currentRole.toLowerCase().includes('interpreter') || currentRole.toLowerCase().includes('admin') || isHost) && (
                 <InterpreterConsole
                     active={micOn}
                     onToggleActive={handleToggleMic}
                     currentLanguage={myBroadcastLang}
+                    onLanguageChange={(lang) => {
+                        setMyBroadcastLang(lang)
+                        updateMetadata({ language: lang })
+                    }}
                     isListeningToFloor={selectedLang === 'original'}
                     onListenToFloor={() => handleLangChange('original')}
                     onHandover={() => sendEmoji('🔄')}
                 />
             )}
-
-            {/* Interpreter Floating Controls (Output Channel Selector) */}
-            <InterpreterControls
-                role={currentRole}
-                isHost={isHost}
-                currentLanguage={myBroadcastLang}
-                onLanguageChange={(lang) => {
-                    setMyBroadcastLang(lang)
-                    updateMetadata({ language: lang })
-                }}
-            />
 
             {/* Language Menu (Moved to Root) */}
             <AnimatePresence>

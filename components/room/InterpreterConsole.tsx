@@ -1,12 +1,22 @@
+
 import * as React from "react"
-import { Mic, MicOff, RefreshCw, Radio, Settings2, Languages } from "lucide-react"
+import { Mic, MicOff, RefreshCw, Radio, Settings2, Globe, Check, ChevronUp, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { LANGUAGES } from "@/lib/languages"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export function InterpreterConsole({
     active,
     onToggleActive,
     currentLanguage,
+    onLanguageChange,
     isListeningToFloor,
     onListenToFloor,
     onHandover
@@ -14,85 +24,111 @@ export function InterpreterConsole({
     active: boolean,
     onToggleActive: () => void,
     currentLanguage: string,
+    onLanguageChange: (lang: string) => void,
     isListeningToFloor: boolean,
     onListenToFloor: () => void,
     onHandover: () => void
 }) {
+    const [isCollapsed, setIsCollapsed] = React.useState(false)
+
     return (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[95%] max-w-2xl bg-black/60 backdrop-blur-2xl border border-white/10 p-3 md:p-4 rounded-2xl md:rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header / Status Bar */}
-            <div className="flex items-center justify-between mb-3 px-1">
-                <div className="flex items-center gap-2.5">
-                    <div className="relative flex h-3 w-3">
-                        {active && (
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        )}
-                        <span className={cn(
-                            "relative inline-flex rounded-full h-3 w-3 border border-black/20",
-                            active ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" : "bg-zinc-600 focus:outline-none"
-                        )}></span>
-                    </div>
-                    <span className={cn(
-                        "font-black uppercase text-[10px] md:text-xs tracking-tighter transition-colors",
-                        active ? "text-red-500" : "text-zinc-500"
-                    )}>
-                        {active ? 'No Ar (On Air)' : 'Em Standby'}
-                    </span>
-                </div>
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-auto max-w-[95%] z-50 flex flex-col items-center gap-2">
 
-                <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
-                    <Languages className="h-3 w-3 text-[#06b6d4]" />
-                    <span className="text-[10px] md:text-xs text-white font-black uppercase tracking-widest">
-                        Canal: <span className="text-[#06b6d4] ml-1">{currentLanguage}</span>
-                    </span>
-                </div>
-            </div>
+            {/* Main Control Strip */}
+            <div className={cn(
+                "bg-black/80 backdrop-blur-xl border border-white/10 p-2 rounded-2xl shadow-2xl flex items-center gap-2 transition-all duration-300",
+                isCollapsed ? "opacity-50 scale-95" : "scale-100"
+            )}>
 
-            {/* Controls Grid */}
-            <div className="grid grid-cols-3 gap-2 md:gap-4">
+                {/* 1. Language Selector (Integrated) */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            className="h-12 pl-2 pr-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl flex items-center gap-3 active:scale-95 transition-all text-left"
+                        >
+                            <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400">
+                                <Globe className="h-4 w-4" />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider">Canal de Saída</span>
+                                <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                                    {LANGUAGES.find(l => l.code === currentLanguage)?.flag}
+                                    {LANGUAGES.find(l => l.code === currentLanguage)?.name || "Selecione..."}
+                                </span>
+                            </div>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="top" align="start" className="w-56 max-h-[300px] overflow-y-auto custom-scrollbar bg-zinc-900 border-zinc-800 p-1 rounded-xl shadow-2xl">
+                        <DropdownMenuLabel className="text-[10px] uppercase text-zinc-500 font-bold px-2 py-1.5">Mudar para</DropdownMenuLabel>
+                        {LANGUAGES.map((lang) => (
+                            <DropdownMenuItem
+                                key={lang.code}
+                                onClick={() => onLanguageChange(lang.code)}
+                                className={cn(
+                                    "rounded-lg p-2.5 flex items-center justify-between cursor-pointer text-xs font-medium focus:bg-white/5",
+                                    currentLanguage === lang.code ? "bg-purple-500/20 text-purple-400" : "text-zinc-300"
+                                )}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <span>{lang.flag}</span>
+                                    <span>{lang.name}</span>
+                                </div>
+                                {currentLanguage === lang.code && <Check className="h-3 w-3" />}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                <div className="w-px h-8 bg-white/10 mx-1" />
+
+                {/* 2. Floor Toggle */}
                 <Button
                     variant="ghost"
-                    className={cn(
-                        "h-14 md:h-16 flex flex-col items-center justify-center gap-1 rounded-xl md:rounded-2xl transition-all active:scale-95",
-                        isListeningToFloor
-                            ? "bg-[#06b6d4] text-white shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:bg-[#06b6d4]/90"
-                            : "bg-white/5 hover:bg-white/10 text-zinc-400 border border-white/5"
-                    )}
                     onClick={onListenToFloor}
-                >
-                    <Radio className={cn("h-4 w-4 md:h-5 md:w-5", isListeningToFloor ? "animate-pulse" : "")} />
-                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-tight">Ouvir Piso</span>
-                </Button>
-
-                <Button
-                    variant="ghost"
                     className={cn(
-                        "h-14 md:h-16 flex flex-col items-center justify-center gap-1 rounded-xl md:rounded-2xl transition-all active:scale-95",
-                        active
-                            ? "bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)] hover:bg-red-600"
-                            : "bg-white/5 hover:bg-white/10 text-zinc-400 border border-white/5"
+                        "h-12 w-12 rounded-xl flex items-center justify-center transition-all",
+                        isListeningToFloor
+                            ? "bg-[#06b6d4] text-white shadow-[0_0_15px_rgba(6,182,212,0.4)]"
+                            : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200"
                     )}
-                    onClick={onToggleActive}
+                    title="Ouvir Piso (Original)"
                 >
-                    {active ? <MicOff className="h-5 w-5 md:h-6 md:w-6" /> : <Mic className="h-5 w-5 md:h-6 md:w-6" />}
-                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-tight">
-                        {active ? 'Mute' : 'Entrar no Ar'}
-                    </span>
+                    <Radio className={cn("h-5 w-5", isListeningToFloor && "animate-pulse")} />
                 </Button>
 
+                {/* 3. On Air (Mic) */}
                 <Button
                     variant="ghost"
-                    className="h-14 md:h-16 flex flex-col items-center justify-center gap-1 bg-white/5 hover:bg-yellow-500/20 hover:text-yellow-500 text-zinc-400 border border-white/5 rounded-xl md:rounded-2xl transition-all active:scale-95"
-                    onClick={onHandover}
+                    onClick={onToggleActive}
+                    className={cn(
+                        "h-12 px-6 rounded-xl flex items-center gap-2 transition-all font-bold uppercase text-[10px] tracking-widest",
+                        active
+                            ? "bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)] animate-pulse"
+                            : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200"
+                    )}
                 >
-                    <RefreshCw className="h-4 w-4 md:h-5 md:w-5" />
-                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-tight">Handover</span>
+                    {active ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+                    <span>{active ? "No Ar" : "Mute"}</span>
                 </Button>
-            </div>
 
-            {/* Hint Text for Mobile */}
-            <div className="mt-2.5 text-center block md:hidden">
-                <p className="text-[8px] text-zinc-600 uppercase font-black tracking-[0.2em]">Console do Intérprete</p>
+                {/* 4. Handover */}
+                <Button
+                    variant="ghost"
+                    onClick={onHandover}
+                    className="h-12 w-12 rounded-xl bg-white/5 text-zinc-400 hover:text-yellow-400 hover:bg-yellow-400/10 transition-all"
+                    title="Solicitar Troca (Handover)"
+                >
+                    <RefreshCw className="h-4 w-4" />
+                </Button>
+
+                {/* 5. Collapse/Expand Toggle (Optional, sleek handle) */}
+                <button
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className="md:hidden absolute -top-3 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur border border-white/10 rounded-full p-0.5 text-zinc-500"
+                >
+                    {isCollapsed ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </button>
             </div>
         </div>
     )
