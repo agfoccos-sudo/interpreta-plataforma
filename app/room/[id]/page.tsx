@@ -217,7 +217,10 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         return a.cameraOn ? -1 : 1
     })
 
-    const paginatedPeers = sortedPeers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    const paginatedPeers = sortedPeers.length <= itemsPerPage
+        ? sortedPeers
+        : sortedPeers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
     const totalPages = Math.ceil(peers.length / itemsPerPage)
 
     // UI Visibility Logic

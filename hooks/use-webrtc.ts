@@ -29,7 +29,7 @@ export function useWebRTC(
     initialConfig: { micOn?: boolean, cameraOn?: boolean, audioDeviceId?: string, videoDeviceId?: string } = {}
 ) {
     const [localStream, setLocalStream] = useState<MediaStream | null>(null)
-    const [peers, setPeers] = useState<Map<string, PeerData>>(new Map())
+    const [peers, setPeers] = useState<PeerData[]>([]) // Use Array directly in state for reliability
     const [logs, setLogs] = useState<string[]>([])
     const [userCount, setUserCount] = useState(0)
     const [mediaError, setMediaError] = useState<string | null>(null)
@@ -47,27 +47,23 @@ export function useWebRTC(
     const [hostId, setHostId] = useState<string | null>(null)
 
     const peersRef = useRef<Map<string, PeerData>>(new Map())
-    const currentAudioDeviceId = useRef<string | undefined>(initialConfig.audioDeviceId)
-    const currentVideoDeviceId = useRef<string | undefined>(initialConfig.videoDeviceId)
 
     const addLog = useCallback((msg: string) => {
         console.log(`[useWebRTC] ${msg}`)
         setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} - ${msg}`])
     }, [])
 
-    const syncPeersToState = useCallback(() => {
-        const currentPeers = new Map(peersRef.current)
-        setPeers(currentPeers)
-        console.log(`[useWebRTC] State Sync: ${currentPeers.size} peers.`, Array.from(currentPeers.keys()))
+    const syncToState = useCallback(() => {
+        setPeers(Array.from(peersRef.current.values()))
     }, [])
 
     const updatePeerData = useCallback((id: string, patch: Partial<PeerData>) => {
         const existing = peersRef.current.get(id)
         if (existing) {
             peersRef.current.set(id, { ...existing, ...patch })
-            syncPeersToState()
+            syncToState()
         }
-    }, [syncPeersToState])
+    }, [syncToState])
 
     const supabase = createClient()
 
@@ -122,7 +118,7 @@ export function useWebRTC(
             activeStream?.getTracks().forEach(t => t.stop())
             peersRef.current.forEach(p => p.peer.destroy())
             peersRef.current.clear()
-            syncPeersToState()
+            syncToState()
             if (channelRef.current) {
                 channelRef.current.unsubscribe()
                 channelRef.current = null
@@ -189,7 +185,14 @@ export function useWebRTC(
             channelRef.current?.send({
                 type: 'broadcast',
                 event: 'signal',
-                payload: { target: targetUserId, sender: userId, signal, role: userRole }
+                payload: {
+                    target: targetUserId,
+                    sender: userId,
+                    signal,
+                    role: userRole,
+                    // Restoration of metadata
+                    metadata: { name: 'Participante', role: userRole }
+                }
             })
         })
 
@@ -205,7 +208,12 @@ export function useWebRTC(
 
         peer.on('close', () => {
             addLog(`Connection closed: ${targetUserId}`)
-            removePeer(targetUserId)
+            const p = peersRef.current.get(targetUserId)
+            if (p) {
+                p.peer.destroy()
+                peersRef.current.delete(targetUserId)
+                syncToState()
+            }
         })
 
         peer.on('error', (err) => {
@@ -219,7 +227,7 @@ export function useWebRTC(
             role: targetRole,
             connectionState: 'connecting'
         })
-        syncPeersToState()
+        syncToState()
         return peer
     }
 
@@ -235,15 +243,6 @@ export function useWebRTC(
         }
     }
 
-    const removePeer = (id: string) => {
-        const p = peersRef.current.get(id)
-        if (p) {
-            p.peer.destroy()
-            peersRef.current.delete(id)
-            syncPeersToState()
-        }
-    }
-
     const toggleMic = (enabled: boolean) => {
         localStream?.getAudioTracks().forEach(t => t.enabled = enabled)
         channelRef.current?.send({ type: 'broadcast', event: 'media-toggle', payload: { userId, kind: 'mic', enabled } })
@@ -256,7 +255,7 @@ export function useWebRTC(
 
     return {
         localStream,
-        peers: Array.from(peers.values()),
+        peers, // Directly use state array
         logs,
         userCount,
         mediaError,
