@@ -299,7 +299,10 @@ export function useWebRTC(
                 audioContextRef.current = null
             }
 
-            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
+                latencyHint: 'interactive',
+                sampleRate: 48000
+            })
             const ctx = audioContextRef.current
 
             const dest = ctx.createMediaStreamDestination()
@@ -328,10 +331,16 @@ export function useWebRTC(
     const shareScreen = async (onEnd?: () => void) => {
         if (sharingUserId && sharingUserId !== userId) return
         try {
-            console.log("Iniciando compartilhamento de tela com áudio...")
+            console.log("Iniciando compartilhamento de tela com áudio (High Fidelity)...")
             const screenStream = await navigator.mediaDevices.getDisplayMedia({
                 video: { cursor: 'always' } as any,
-                audio: true
+                audio: {
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false,
+                    sampleRate: 48000,
+                    channelCount: 2
+                }
             })
 
             const screenTrack = screenStream.getVideoTracks()[0]
