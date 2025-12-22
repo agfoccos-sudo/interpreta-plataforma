@@ -101,6 +101,7 @@ export function useChat(roomId: string, userId: string, userRole: string, userNa
                     }
 
                     setMessages(prev => {
+                        // CRITICAL: Deduplicate by ID
                         if (prev.some(m => m.id === msg.id)) return prev
                         return [...prev, msg]
                     })
@@ -126,11 +127,7 @@ export function useChat(roomId: string, userId: string, userRole: string, userNa
                     playNotificationSound()
                 }
             })
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    console.log('Chat (Hybrid) subscribed to room:', roomId)
-                }
-            })
+            .subscribe()
 
         return () => {
             channel.unsubscribe()
@@ -140,8 +137,11 @@ export function useChat(roomId: string, userId: string, userRole: string, userNa
     const sendMessage = async (text: string) => {
         if (!text.trim()) return
 
+        // Use a consistent ID to prevent duplication between Broadcast and Postgres
+        const msgId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15)
+
         const msg: Message = {
-            id: Math.random().toString(36).substr(2, 9),
+            id: msgId,
             sender: userId,
             senderName: userName,
             text,
@@ -162,13 +162,18 @@ export function useChat(roomId: string, userId: string, userRole: string, userNa
         // 3. Persistent storage
         try {
             const { error } = await supabase.from('messages').insert({
+                id: msgId, // Use the same ID
                 room_id: roomId,
                 sender_id: userId,
-                sender_name: userName, // Added field
+                sender_name: userName,
                 content: text,
                 role: userRole
             })
-            if (error) console.error("DB Chat Insert failed (Guest?):", error)
+            if (error) {
+                console.error("DB Chat Insert failed:", error)
+                // If it failed because of the ID manually set (unlikely in modern Supabase), 
+                // we might want a fallback, but generally it works.
+            }
         } catch (e) {
             console.error("Chat Insert exception:", e)
         }

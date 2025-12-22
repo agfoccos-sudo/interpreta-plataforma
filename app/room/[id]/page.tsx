@@ -48,7 +48,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     // User Identity Logic
     const [userId, setUserId] = useState('')
     const [userName, setUserName] = useState('Participante')
-    const [currentRole, setCurrentRole] = useState<'participant' | 'interpreter'>('participant')
+    const [currentRole, setCurrentRole] = useState<string>('participant')
     const [isLoaded, setIsLoaded] = useState(false)
 
     useEffect(() => {
@@ -66,9 +66,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
                 if (profile) {
                     setUserName(profile.full_name || profile.username || user.email?.split('@')[0] || 'Participante')
-                    if (profile.role === 'interpreter') {
-                        setCurrentRole('interpreter')
-                    }
+                    setCurrentRole(profile.role || 'participant')
                 }
 
                 // Check Meeting Interpreters (Item 1)

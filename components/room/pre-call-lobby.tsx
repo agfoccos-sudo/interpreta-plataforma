@@ -27,6 +27,13 @@ export function PreCallLobby({ onJoin, userName: initialName, isGuest }: PreCall
     const [chosenName, setChosenName] = useState(initialName)
     const videoRef = useRef<HTMLVideoElement>(null)
 
+    // Sync if name loads after mount (e.g. Profile fetch)
+    useEffect(() => {
+        if (initialName && initialName !== 'Participante' && chosenName === 'Participante') {
+            setChosenName(initialName)
+        }
+    }, [initialName])
+
     useEffect(() => {
         const init = async () => {
             try {

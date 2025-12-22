@@ -259,6 +259,13 @@ export function useWebRTC(
         })
     }
 
+    // React to identity changes (e.g. Admin name loading late)
+    useEffect(() => {
+        if (channelRef.current && isJoined) {
+            updateMetadata({ name: userName, role: userRole })
+        }
+    }, [userName, userRole, isJoined])
+
     const mixAudio = async (contentStream: MediaStream) => {
         if (!originalMicTrackRef.current) return contentStream.getAudioTracks()[0]
         try {
