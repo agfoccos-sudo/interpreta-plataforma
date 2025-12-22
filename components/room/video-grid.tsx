@@ -73,7 +73,8 @@ export function VideoGrid({
 
         // If listener wants "Original Audio"
         if (selectedLang === 'original' || selectedLang === 'floor') {
-            // Mute them ONLY if they are actually in "Interpretation Mode" (broadcasting to a specific channel)
+            // STRICT ISOLATION: Mute them completely if they are broadcasting a translation
+            // This prevents the "bleeding" into the original floor audio.
             return isBroadcastingTranslation ? 0 : 1.0
         }
 

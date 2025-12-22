@@ -225,6 +225,8 @@ export function useWebRTC(
                         if (p.cameraOn !== remoteData?.cameraOn) { p.cameraOn = remoteData?.cameraOn; peerChanged = true }
                         if (p.handRaised !== remoteData?.handRaised) { p.handRaised = remoteData?.handRaised; peerChanged = true }
                         if (p.language !== remoteData?.language) { p.language = remoteData?.language; peerChanged = true }
+                        if (p.role !== remoteData?.role) { p.role = remoteData?.role; peerChanged = true }
+                        if (p.isHost !== remoteData?.isHost) { p.isHost = remoteData?.isHost; peerChanged = true }
                         if (peerChanged) changed = true
                     }
                 })
