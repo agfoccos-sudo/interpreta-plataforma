@@ -83,8 +83,24 @@ export async function deleteUser(userId: string) {
 
         const supabaseAdmin = await createAdminClient()
 
+        // Manual Cascade Delete - Delete related records first
+        // 1. Delete messages (sent by user)
+        await supabaseAdmin.from('messages').delete().eq('sender_id', userId)
+
+        // 2. Delete meetings where user is host
+        await supabaseAdmin.from('meetings').delete().eq('host_id', userId)
+
+        // 3. Delete announcements (created by user)
+        await supabaseAdmin.from('announcements').delete().eq('created_by', userId)
+
+        // 4. Delete profile (usually cascades, but good to be explicit or if profile has other FKs)
+        await supabaseAdmin.from('profiles').delete().eq('id', userId)
+
         const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
-        if (error) return { success: false, error: error.message }
+        if (error) {
+            console.error('Delete User Auth Error:', error)
+            return { success: false, error: 'Erro ao excluir conta de autenticação.' }
+        }
 
         await logAdminAction({
             action: 'USER_DELETE',
