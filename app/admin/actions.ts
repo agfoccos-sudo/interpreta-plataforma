@@ -87,7 +87,11 @@ export async function deleteUser(userId: string) {
         // 1. Delete messages (sent by user)
         await supabaseAdmin.from('messages').delete().eq('sender_id', userId)
 
+        // 1.1 Delete meeting participants records
+        await supabaseAdmin.from('meeting_participants').delete().eq('user_id', userId)
+
         // 2. Delete meetings where user is host
+        // Note: This might cascade to meeting_participants, but explicit delete above is safer
         await supabaseAdmin.from('meetings').delete().eq('host_id', userId)
 
         // 3. Delete announcements (created by user)
@@ -102,7 +106,8 @@ export async function deleteUser(userId: string) {
         const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
         if (error) {
             console.error('Delete User Auth Error:', error)
-            return { success: false, error: 'Erro ao excluir conta de autenticação.' }
+            // Return specific error message to help diagnostics
+            return { success: false, error: `Erro na autenticação: ${error.message}` }
         }
 
         await logAdminAction({
@@ -231,18 +236,21 @@ export async function createUser(formData: FormData) {
             return { success: false, error: error.message }
         }
 
-        // 4. Update role and languages in profiles
+        // 4. Update role and languages in profiles (Use UPSERT for robustness)
         if (newUser?.user) {
             const { error: profileError } = await supabaseAdmin
                 .from('profiles')
-                .update({
-                    role: role,
-                    languages: languages
+                .upsert({
+                    id: newUser.user.id,
+                    email: email,
+                    full_name: fullName,
+                    role: role === 'participant' ? 'user' : role,
+                    languages: languages,
+                    status: 'active'
                 })
-                .eq('id', newUser.user.id)
 
             if (profileError) {
-                console.error('Error updating profile (role/languages):', profileError)
+                console.error('Error upserting profile:', profileError)
                 // We don't return error here to avoid blocking creation if just profile update fails, 
                 // but ideally implementation should be transactional.
             }
