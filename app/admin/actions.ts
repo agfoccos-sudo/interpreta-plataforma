@@ -46,10 +46,7 @@ export async function updateUserStatus(userId: string, status: 'active' | 'suspe
 
         const { error } = await supabase
             .from('profiles')
-            .update({
-                status,
-                active: status === 'active' // Keep legacy active column in sync
-            })
+            .update({ status })
             .eq('id', userId)
 
         if (error) return { success: false, error: error.message }
@@ -65,6 +62,35 @@ export async function updateUserStatus(userId: string, status: 'active' | 'suspe
             targetResource: 'user',
             targetId: userId,
             details: { old_status: oldProfile?.status, new_status: status, reason }
+        })
+
+        revalidatePath('/admin/users')
+        return { success: true }
+    } catch (err: any) {
+        return { success: false, error: err.message }
+    }
+}
+
+export async function deleteUser(userId: string) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, error: 'Unauthorized' }
+
+        // Verify Admin
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        if (profile?.role !== 'admin') return { success: false, error: 'Unauthorized' }
+
+        const supabaseAdmin = await createAdminClient()
+
+        const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
+        if (error) return { success: false, error: error.message }
+
+        await logAdminAction({
+            action: 'USER_DELETE',
+            targetResource: 'user',
+            targetId: userId,
+            details: {}
         })
 
         revalidatePath('/admin/users')

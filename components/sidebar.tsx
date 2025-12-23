@@ -26,10 +26,11 @@ interface SidebarProps {
     user: { email?: string }
     userRole: string
     userAvatar?: string | null
+    userName?: string // Added prop
     unreadMessagesCount?: number
 }
 
-export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }: SidebarProps) {
+export function Sidebar({ user, userRole, userAvatar, userName, unreadMessagesCount = 0 }: SidebarProps) {
     const pathname = usePathname()
     const { t } = useLanguage()
 
@@ -175,7 +176,9 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
                         </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-bold text-foreground dark:text-white truncate max-w-[120px]">{user.email?.split('@')[0]}</span>
+                        <span className="text-sm font-bold text-foreground dark:text-white truncate max-w-[120px]" title={userName || user.email}>
+                            {userName || user.email?.split('@')[0]}
+                        </span>
                         <span className="text-[10px] text-muted-foreground dark:text-blue-300/80 font-bold uppercase tracking-wider">
                             {userRole === 'admin' ? t('common.role_admin') : t('common.role_user')}
                         </span>

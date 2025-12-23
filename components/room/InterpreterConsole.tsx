@@ -31,7 +31,8 @@ export function InterpreterConsole({
     onListenToFloor: () => void,
     onHandover: () => void,
     availableLanguages?: typeof LANGUAGES,
-    allowedLanguages?: string[]
+    allowedLanguages?: string[],
+    occupiedLanguages?: string[]
 }) {
     const [isCollapsed, setIsCollapsed] = React.useState(false)
 
@@ -72,22 +73,32 @@ export function InterpreterConsole({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent side="top" align="start" className="w-56 max-h-[300px] overflow-y-auto custom-scrollbar bg-zinc-900 border-zinc-800 p-1 rounded-xl shadow-2xl">
                         <DropdownMenuLabel className="text-[10px] uppercase text-zinc-500 font-bold px-2 py-1.5">Mudar para</DropdownMenuLabel>
-                        {selectableLanguages.map((lang) => (
-                            <DropdownMenuItem
-                                key={lang.code}
-                                onClick={() => onLanguageChange(lang.code)}
-                                className={cn(
-                                    "rounded-lg p-2.5 flex items-center justify-between cursor-pointer text-xs font-medium focus:bg-white/5",
-                                    currentLanguage === lang.code ? "bg-purple-500/20 text-purple-400" : "text-zinc-300"
-                                )}
-                            >
-                                <div className="flex items-center gap-2">
-                                    <span>{lang.flag}</span>
-                                    <span>{lang.name}</span>
-                                </div>
-                                {currentLanguage === lang.code && <Check className="h-3 w-3" />}
-                            </DropdownMenuItem>
-                        ))}
+                        {selectableLanguages.map((lang) => {
+                            // Check if locked excluding current selection (if we are the one occupying it, it's fine, but occupiedLanguages usually comes from peers only? 
+                            // Actually RoomPage should pass occupied including self if self is filtering peers? 
+                            // Usually occupiedLanguages = list of codes taken by OTHERS.
+                            const isLocked = occupiedLanguages?.includes(lang.code) && currentLanguage !== lang.code
+
+                            return (
+                                <DropdownMenuItem
+                                    key={lang.code}
+                                    disabled={isLocked}
+                                    onClick={() => !isLocked && onLanguageChange(lang.code)}
+                                    className={cn(
+                                        "rounded-lg p-2.5 flex items-center justify-between cursor-pointer text-xs font-medium focus:bg-white/5",
+                                        currentLanguage === lang.code ? "bg-purple-500/20 text-purple-400" : "text-zinc-300",
+                                        isLocked && "opacity-50 cursor-not-allowed"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span>{lang.flag}</span>
+                                        <span>{lang.name}</span>
+                                        {isLocked && <span className="text-[9px] bg-red-500/20 text-red-500 px-1.5 py-0.5 rounded ml-2">OCUPADO</span>}
+                                    </div>
+                                    {currentLanguage === lang.code && <Check className="h-3 w-3" />}
+                                </DropdownMenuItem>
+                            )
+                        })}
                     </DropdownMenuContent>
                 </DropdownMenu>
 

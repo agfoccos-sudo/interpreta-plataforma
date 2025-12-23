@@ -1,7 +1,17 @@
 'use client'
 
-import { Users, User as UserIcon, Mic, X, Hand } from 'lucide-react'
+import { Users, User as UserIcon, Mic, X, Hand, MoreVertical, ShieldAlert, Gavel, Languages, Crown, ShieldBan, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useState } from 'react'
+import { ManageLanguagesDialog } from './manage-languages-dialog'
 
 interface Peer {
     userId: string
@@ -17,18 +27,39 @@ export function ParticipantList({
     isHost,
     hostId,
     onPromote,
+    onKick,
+    onUpdateRole,
+    onUpdateLanguages,
     onClose
 }: {
-    peers: any[], // Ideally types peer
+    peers: any[],
     userRole: string,
     userCount: number,
     isHost: boolean,
     hostId: string | null,
     onPromote: (id: string) => void,
+    onKick?: (id: string) => void,
+    onUpdateRole?: (id: string, role: string) => void,
+    onUpdateLanguages?: (id: string, langs: string[]) => void,
     onClose?: () => void
 }) {
+    const [selectedUserForLang, setSelectedUserForLang] = useState<{ id: string, name: string, languages: string[] } | null>(null)
+
+    const canManageContext = isHost || userRole === 'admin'
+
     return (
         <div className="flex flex-col h-full bg-card/40 backdrop-blur-xl border-l border-border w-full md:w-80 animate-in slide-in-from-right duration-300">
+            {/* Manage Languages Dialog */}
+            {selectedUserForLang && (
+                <ManageLanguagesDialog
+                    isOpen={!!selectedUserForLang}
+                    onClose={() => setSelectedUserForLang(null)}
+                    userName={selectedUserForLang.name}
+                    currentLanguages={selectedUserForLang.languages}
+                    onSave={(langs) => onUpdateLanguages?.(selectedUserForLang.id, langs)}
+                />
+            )}
+
             <div className="p-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-[#06b6d4]" />
@@ -75,7 +106,7 @@ export function ParticipantList({
 
                 {/* Others */}
                 {peers.map((peer) => (
-                    <div key={peer.userId} className="flex items-center justify-between p-3 rounded-2xl bg-accent/50 border border-border hover:border-[#06b6d4]/30 transition-colors">
+                    <div key={peer.userId} className="flex items-center justify-between p-3 rounded-2xl bg-accent/50 border border-border hover:border-[#06b6d4]/30 transition-colors group">
                         <div className="flex-1 min-w-0">
                             <div className="flex flex-col">
                                 <span className="text-sm font-bold text-foreground truncate">{peer.name || peer.userId.split('-')[1] || peer.userId}</span>
@@ -96,15 +127,60 @@ export function ParticipantList({
                                 </div>
                             )}
                             {(peer.role?.toLowerCase() === 'interpreter' || peer.role?.toLowerCase() === 'admin') && <Mic className="h-3 w-3 text-purple-400" />}
-                            {isHost && peer.userId !== hostId && !peer.isPresentation && (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => onPromote(peer.userId)}
-                                    className="h-7 text-[9px] font-black uppercase px-2 rounded-lg border-[#06b6d4]/30 text-[#06b6d4] hover:bg-[#06b6d4] hover:text-white transition-all shadow-sm active:scale-95"
-                                >
-                                    Tornar Host
-                                </Button>
+
+                            {/* Admin Actions Dropdown - Visible only to Host/Admin for others */}
+                            {canManageContext && peer.userId !== hostId && !peer.isHost && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="bg-[#020817] border-white/10 text-white w-56">
+                                        <DropdownMenuLabel>Ações de Admin</DropdownMenuLabel>
+                                        <DropdownMenuSeparator className="bg-white/10" />
+
+                                        {/* Promote/Demote Interpreter */}
+                                        {peer.role === 'interpreter' ? (
+                                            <DropdownMenuItem onClick={() => onUpdateRole?.(peer.userId, 'participant')} className="focus:bg-red-500/10 focus:text-red-400 cursor-pointer">
+                                                <ShieldAlert className="h-4 w-4 mr-2" />
+                                                Rebaixar para Participante
+                                            </DropdownMenuItem>
+                                        ) : (
+                                            <DropdownMenuItem onClick={() => onUpdateRole?.(peer.userId, 'interpreter')} className="focus:bg-purple-500/10 focus:text-purple-400 cursor-pointer">
+                                                <Languages className="h-4 w-4 mr-2" />
+                                                Promover a Intérprete
+                                            </DropdownMenuItem>
+                                        )}
+
+                                        {/* Manage Languages (Only for Interpreter) */}
+                                        {peer.role === 'interpreter' && (
+                                            <DropdownMenuItem
+                                                onClick={() => setSelectedUserForLang({ id: peer.userId, name: peer.name, languages: [] })} // Pass current langs if available in peer metadata? Need to add 'allowedLanguages' to peer metadata if we want to pre-fill correctly.
+                                                className="focus:bg-blue-500/10 focus:text-blue-400 cursor-pointer"
+                                            >
+                                                <Settings className="h-4 w-4 mr-2" />
+                                                Gerenciar Idiomas
+                                            </DropdownMenuItem>
+                                        )}
+
+                                        <DropdownMenuSeparator className="bg-white/10" />
+
+                                        {/* Host Promotion */}
+                                        {isHost && (
+                                            <DropdownMenuItem onClick={() => onPromote(peer.userId)} className="focus:bg-yellow-500/10 focus:text-yellow-400 cursor-pointer">
+                                                <Crown className="h-4 w-4 mr-2" />
+                                                Tornar Anfitrião
+                                            </DropdownMenuItem>
+                                        )}
+
+                                        {/* Kick */}
+                                        <DropdownMenuItem onClick={() => onKick?.(peer.userId)} className="focus:bg-red-900/20 focus:text-red-500 cursor-pointer text-red-500">
+                                            <Gavel className="h-4 w-4 mr-2" />
+                                            Expulsar da Sala
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             )}
                         </div>
                     </div>

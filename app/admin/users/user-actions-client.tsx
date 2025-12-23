@@ -21,7 +21,7 @@ import { Label } from "../../../components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MoreHorizontal, Settings2, Languages } from 'lucide-react'
 import React, { useState } from 'react'
-import { updateUserRole, updateUserStatus, updateUserLimits, updateProfileLanguages } from '../actions'
+import { updateUserRole, updateUserStatus, updateUserLimits, updateProfileLanguages, deleteUser } from '../actions'
 import { LANGUAGES } from '@/lib/languages'
 
 interface Profile {
@@ -278,6 +278,17 @@ export function UserActionsClient({ profile }: { profile: Profile }): React.Reac
                             Banir Usuário
                         </DropdownMenuItem>
                     )}
+                    <DropdownMenuSeparator className="bg-white/10" />
+                    <DropdownMenuItem
+                        onClick={async () => {
+                            if (confirm('Tem certeza que deseja excluir permanentemente este usuário? Esta ação não pode ser desfeita.')) {
+                                await handleAction(() => deleteUser(profile.id))
+                            }
+                        }}
+                        className="text-red-600 font-extrabold hover:bg-red-600/10 focus:bg-red-600/10 cursor-pointer"
+                    >
+                        Excluir Usuário
+                    </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>

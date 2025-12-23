@@ -233,6 +233,30 @@ export function useWebRTC(
                 setReactions(prev => [...prev, { id, emoji, userId: sender }])
                 setTimeout(() => setReactions(prev => prev.filter(r => r.id !== id)), 5000)
             })
+            // New Admin Actions Listener
+            .on('broadcast', { event: 'admin-action' }, async (event) => {
+                const { action, targetId, payload } = event.payload
+
+                // If I am the target
+                if (targetId === userId) {
+                    if (action === 'set-role') {
+                        // Update my role locally and in metadata
+                        updateMetadata({ role: payload.role })
+                        // If promoted to interpreter, we might want to auto-open setup? handled in RoomPage via effect?
+                        // If demoted, clear language?
+                        if (payload.role !== 'interpreter') {
+                            updateMetadata({ language: 'floor' })
+                        }
+                    }
+                    else if (action === 'set-allowed-languages') {
+                        window.dispatchEvent(new CustomEvent('admin-update-languages', { detail: payload.languages }))
+                    }
+                    else if (action === 'kick') {
+                        alert('Você foi removido da reunião pelo administrador.')
+                        window.location.href = '/dashboard'
+                    }
+                }
+            })
             .on('presence', { event: 'sync' }, () => {
                 const state = newChannel.presenceState(); const users = Object.keys(state); setUserCount(users.length)
                 let changed = false
@@ -520,6 +544,19 @@ export function useWebRTC(
         updateMetadata({ cameraOn: enabled })
     }
 
+    // Admin Actions
+    const kickUser = (targetId: string) => {
+        channelRef.current?.send({ type: 'broadcast', event: 'admin-action', payload: { action: 'kick', targetId } })
+    }
+
+    const updateUserRole = (targetId: string, newRole: string) => {
+        channelRef.current?.send({ type: 'broadcast', event: 'admin-action', payload: { action: 'set-role', targetId, payload: { role: newRole } } })
+    }
+
+    const updateUserLanguages = (targetId: string, languages: string[]) => {
+        channelRef.current?.send({ type: 'broadcast', event: 'admin-action', payload: { action: 'set-allowed-languages', targetId, payload: { languages } } })
+    }
+
     return {
         localStream,
         peers,
@@ -537,6 +574,9 @@ export function useWebRTC(
         toggleHand,
         updateMetadata,
         promoteToHost,
+        kickUser,
+        updateUserRole,
+        updateUserLanguages,
         mediaError,
         reactions,
         localHandRaised,

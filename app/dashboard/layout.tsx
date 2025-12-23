@@ -15,6 +15,7 @@ export default async function DashboardLayout({
     let user = null
     let role = 'participant'
     let avatar = null
+    let fullName = null
     let unreadCount = 0
 
     if (isDemo) {
@@ -29,6 +30,7 @@ export default async function DashboardLayout({
         }
         role = 'demo_viewer'
         avatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo'
+        fullName = 'Demo User'
     } else {
         const supabase = await createClient()
         const { data } = await supabase.auth.getUser()
@@ -38,15 +40,16 @@ export default async function DashboardLayout({
             redirect('/login')
         }
 
-        // Fetch role and avatar efficiently (and last read time)
+        // Fetch role, avatar, full_name, and last read time
         const { data: profile } = await supabase
             .from('profiles')
-            .select('role, avatar_url, last_read_announcements_at')
+            .select('role, avatar_url, full_name, last_read_announcements_at')
             .eq('id', user.id)
             .single()
 
         role = profile?.role || user.user_metadata?.role || 'participant'
         avatar = profile?.avatar_url
+        fullName = profile?.full_name || user.user_metadata?.full_name
         const lastRead = profile?.last_read_announcements_at || '2000-01-01'
 
         // Count unread announcements
@@ -61,7 +64,13 @@ export default async function DashboardLayout({
     return (
         <div className="h-full relative bg-[#020817] text-white">
             <div className="hidden h-full md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80]">
-                <Sidebar user={user} userRole={role} userAvatar={avatar} unreadMessagesCount={unreadCount || 0} />
+                <Sidebar
+                    user={user}
+                    userRole={role}
+                    userAvatar={avatar}
+                    userName={fullName || user.user_metadata?.full_name || user.email?.split('@')[0]}
+                    unreadMessagesCount={unreadCount || 0}
+                />
             </div>
             <main className="md:pl-72 h-full">
                 {children}

@@ -40,6 +40,7 @@ import { LayoutGrid, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { PreCallLobby } from '@/components/room/pre-call-lobby'
 import { SettingsDialog } from '@/components/room/settings-dialog'
 import { useLanguage } from '@/components/providers/language-provider'
+import { InterpreterSetupModal } from '@/components/room/interpreter-setup-modal'
 
 export default function RoomPage({ params, searchParams }: { params: Promise<{ id: string }>, searchParams: Promise<{ role?: string }> }) {
     // ... preceding state remains ...
@@ -223,7 +224,10 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         isAnySharing,
         reactions,
         hostId,
-        promoteToHost
+        promoteToHost,
+        kickUser,
+        updateUserRole,
+        updateUserLanguages
     } = useWebRTC(roomId, userId, currentRole, lobbyConfig || {}, isJoined, userName)
 
     const isGuest = userId.startsWith('guest-')
@@ -317,6 +321,24 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
     // Chamada de Atenção (Hand Raise Notification)
     const prevPeersHandRef = useRef<{ [key: string]: boolean }>({})
+
+    // Listen for Admin Language Updates
+    useEffect(() => {
+        const handleLangUpdate = (e: CustomEvent<string[]>) => {
+            console.log("Admin updated my languages:", e.detail)
+            setAssignedLanguages(e.detail)
+            // If my current broadcast lang is not in the new allowed list, reset to floor or first allowed
+            if (e.detail.length > 0 && !e.detail.includes(myBroadcastLang)) {
+                setMyBroadcastLang(e.detail[0])
+            } else if (e.detail.length === 0) {
+                // If no languages allowed, maybe force floor?
+                setMyBroadcastLang('floor')
+            }
+        }
+        window.addEventListener('admin-update-languages' as any, handleLangUpdate as any)
+        return () => window.removeEventListener('admin-update-languages' as any, handleLangUpdate as any)
+    }, [myBroadcastLang])
+
     useEffect(() => {
         peers.forEach(p => {
             const wasRaised = prevPeersHandRef.current[p.userId]
@@ -581,6 +603,9 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                     isHost={isHost}
                                     hostId={hostId}
                                     onPromote={promoteToHost}
+                                    onKick={kickUser}
+                                    onUpdateRole={updateUserRole}
+                                    onUpdateLanguages={updateUserLanguages}
                                     onClose={() => setActiveSidebar(null)}
                                 />
                             </div>
@@ -620,21 +645,43 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
             {/* Interpreter Console (Central Cockpit) */}
             {/* Interpreter Console (Unified Strip) */}
+            {/* Interpreter Console (Central Cockpit) */}
             {(currentRole.toLowerCase().includes('interpreter') || currentRole.toLowerCase().includes('admin') || isHost) && (
-                <InterpreterConsole
-                    active={micOn}
-                    onToggleActive={handleToggleMic}
-                    currentLanguage={myBroadcastLang}
-                    onLanguageChange={(lang) => {
-                        setMyBroadcastLang(lang)
-                        updateMetadata({ language: lang })
-                    }}
-                    isListeningToFloor={selectedLang === 'original'}
-                    onListenToFloor={() => handleLangChange('original')}
-                    onHandover={() => sendEmoji('🔄')}
-                    availableLanguages={availableSystemLanguages}
-                    allowedLanguages={assignedLanguages.length > 0 ? assignedLanguages : undefined}
-                />
+                <>
+                    <InterpreterSetupModal
+                        isOpen={isJoined && currentRole.toLowerCase().includes('interpreter') && assignedLanguages.length === 0 && myBroadcastLang === 'floor'} // Show if interpreter, joined, and hasn't picked non-floor language (unless pre-assigned restricted)
+                        // Logic refinement: If user has 'assignedLanguages' from DB, maybe we don't need modal? Or we do active selection from allowed?
+                        // Let's assume we force selection if myBroadcastLang is 'floor' (default).
+                        // We need a state to track "setup done" to avoid showing it if they genuinely want to be on 'floor' (unlikely for active interpreter).
+                        // Better: use explicit state [interpreterSetupDone, setInterpreterSetupDone]
+                        // But for now, let's use the local state I'll add below.
+
+                        availableLanguages={availableSystemLanguages}
+                        occupiedLanguages={peers.filter(p => p.role?.includes('interpreter') && p.userId !== userId).map(p => p.language).filter(Boolean) as string[]}
+                        onSelect={(lang) => {
+                            setMyBroadcastLang(lang)
+                            // Trigger update metadata immediate
+                            updateMetadata({ language: lang })
+                        }}
+                        userName={userName}
+                    />
+
+                    <InterpreterConsole
+                        active={micOn}
+                        onToggleActive={handleToggleMic}
+                        currentLanguage={myBroadcastLang}
+                        onLanguageChange={(lang) => {
+                            setMyBroadcastLang(lang)
+                            updateMetadata({ language: lang })
+                        }}
+                        isListeningToFloor={selectedLang === 'original'}
+                        onListenToFloor={() => handleLangChange('original')}
+                        onHandover={() => sendEmoji('🔄')}
+                        availableLanguages={availableSystemLanguages}
+                        allowedLanguages={assignedLanguages.length > 0 ? assignedLanguages : undefined}
+                        occupiedLanguages={peers.filter(p => p.role?.includes('interpreter') && p.userId !== userId).map(p => p.language).filter(Boolean) as string[]}
+                    />
+                </>
             )}
 
             {/* Language Menu (Moved to Root) */}

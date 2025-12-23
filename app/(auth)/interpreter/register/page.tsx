@@ -5,107 +5,209 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { AlertCircle, Loader2, Mic2 } from 'lucide-react'
+import { AlertCircle, Loader2, Globe, ArrowLeft } from 'lucide-react'
 import { Logo } from '@/components/logo'
+import { useLanguage } from '@/components/providers/language-provider'
+
+// Available languages for selection
+const AVAILABLE_LANGUAGES = [
+    { id: 'pt', label: 'Português' },
+    { id: 'en', label: 'Inglês' },
+    { id: 'es', label: 'Espanhol' },
+    { id: 'fr', label: 'Francês' },
+    { id: 'de', label: 'Alemão' },
+    { id: 'it', label: 'Italiano' },
+    { id: 'zh', label: 'Chinês' },
+    { id: 'ja', label: 'Japonês' },
+]
 
 export default function InterpreterRegisterPage() {
-    const [name, setName] = useState('')
+    const { t } = useLanguage()
+    const router = useRouter()
+
+    // Form State
+    const [fullName, setFullName] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [confirmPassword, setConfirmPassword] = useState('')
+    const [company, setCompany] = useState('')
+    const [selectedLanguages, setSelectedLanguages] = useState<string[]>([])
+
+    // UI State
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const router = useRouter()
+
+    const toggleLanguage = (langId: string) => {
+        setSelectedLanguages(prev =>
+            prev.includes(langId)
+                ? prev.filter(id => id !== langId)
+                : [...prev, langId]
+        )
+    }
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
         setError(null)
 
+        // Validation
+        if (password !== confirmPassword) {
+            setError('As senhas não coincidem.')
+            setLoading(false)
+            return
+        }
+
+        if (selectedLanguages.length === 0) {
+            setError('Selecione pelo menos um idioma.')
+            setLoading(false)
+            return
+        }
+
         const supabase = createClient()
 
-        // Create user with explicit 'interpreter' role metadata
-        const { error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    full_name: name,
-                    role: 'interpreter' // Critical: Set role to interpreter
-                },
-                emailRedirectTo: `${window.location.origin}/auth/callback`
-            }
-        })
+        try {
+            // 1. Sign Up
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        full_name: fullName,
+                        role: 'interpreter', // AUTO-ASSIGN ROLE
+                        company: company,
+                        languages: selectedLanguages
+                    }
+                }
+            })
 
-        if (error) {
-            setError(error.message)
+            if (authError) throw authError
+
+            // 2. Create Profile (if not handled by trigger, but let's assume manual creation for robustness or reliability if trigger fails/doesn't exist)
+            // Ideally, a Supabase trigger handles this. But for safety, we can try to insert/update if the trigger is slow or doesn't exist.
+            // However, usually we rely on metadata + trigger. 
+            // Let's assume the metadata `role: 'interpreter'` is the key.
+
+            // If the user already exists (might happen in dev), we confuse it. 
+            // Let's assume fresh registration.
+
+            if (authData.user) {
+                // Determine redirect
+                router.push('/dashboard')
+            }
+        } catch (err: any) {
+            setError(err.message || 'Erro ao criar conta.')
+        } finally {
             setLoading(false)
-        } else {
-            // Check if email confirmation is required (Supabase setting dependent)
-            // But for now assume immediate login or "Check email"
-            // For simplicity in this dev environment, we assume auto-login or redirect
-            router.push('/dashboard?welcome=interpreter')
-            router.refresh()
         }
     }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#020817] p-4 relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-50 [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+            <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
 
-            <div className="w-full max-w-md space-y-8 relative z-10 bg-white/5 backdrop-blur-lg p-8 rounded-2xl border border-purple-500/20 shadow-2xl">
+            <div className="w-full max-w-xl space-y-8 relative z-10 bg-white/5 backdrop-blur-lg p-8 rounded-2xl border border-white/10 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <div className="text-center flex flex-col items-center">
-                    <div className="h-12 w-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4 border border-purple-500/30">
-                        <Mic2 className="h-6 w-6 text-purple-400" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-white">Junte-se como Intérprete</h2>
+                    <Logo className="scale-125 mb-4" />
+                    <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+                        <Globe className="text-cyan-400" />
+                        Cadastro de Intérprete
+                    </h2>
                     <p className="mt-2 text-sm text-gray-400">
-                        Crie sua conta profissional
+                        Junte-se à nossa rede de profissionais de interpretação.
                     </p>
                 </div>
 
                 <form className="mt-8 space-y-6" onSubmit={handleRegister}>
                     <div className="space-y-4">
+                        {/* Name */}
                         <div>
-                            <Label htmlFor="name" className="text-gray-300">Nome Completo</Label>
+                            <Label htmlFor="fullname" className="text-gray-300">Nome Completo</Label>
                             <Input
-                                id="name"
-                                name="name"
-                                type="text"
+                                id="fullname"
                                 required
-                                className="bg-black/20 border-white/10 text-white placeholder:text-gray-500 mt-1 focus:ring-purple-500/50 focus:border-purple-500/50"
-                                placeholder="Seu nome"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
+                                className="bg-black/20 border-white/10 text-white placeholder:text-gray-600 mt-1"
+                                placeholder="João Silva"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
                             />
                         </div>
+
+                        {/* Email */}
                         <div>
-                            <Label htmlFor="email" className="text-gray-300">Email</Label>
+                            <Label htmlFor="email" className="text-gray-300">Email Profissional</Label>
                             <Input
                                 id="email"
-                                name="email"
                                 type="email"
-                                autoComplete="email"
                                 required
-                                className="bg-black/20 border-white/10 text-white placeholder:text-gray-500 mt-1 focus:ring-purple-500/50 focus:border-purple-500/50"
-                                placeholder="seu@email.com"
+                                className="bg-black/20 border-white/10 text-white placeholder:text-gray-600 mt-1"
+                                placeholder="joao@exemplo.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
                         </div>
+
+                        {/* Company */}
                         <div>
-                            <Label htmlFor="password" className="text-gray-300">Senha</Label>
+                            <Label htmlFor="company" className="text-gray-300">Empresa / Agência (Opcional)</Label>
                             <Input
-                                id="password"
-                                name="password"
-                                type="password"
-                                required
-                                className="bg-black/20 border-white/10 text-white placeholder:text-gray-500 mt-1 focus:ring-purple-500/50 focus:border-purple-500/50"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                id="company"
+                                className="bg-black/20 border-white/10 text-white placeholder:text-gray-600 mt-1"
+                                placeholder="Ex: Interpret Solutions Ltda"
+                                value={company}
+                                onChange={(e) => setCompany(e.target.value)}
                             />
+                        </div>
+
+                        {/* Languages */}
+                        <div>
+                            <Label className="text-gray-300 block mb-2">Idiomas de Trabalho</Label>
+                            <div className="grid grid-cols-2 gap-3 p-4 bg-black/20 rounded-lg border border-white/10">
+                                {AVAILABLE_LANGUAGES.map((lang) => (
+                                    <div key={lang.id} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={`lang-${lang.id}`}
+                                            checked={selectedLanguages.includes(lang.id)}
+                                            onCheckedChange={() => toggleLanguage(lang.id)}
+                                            className="border-white/30 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
+                                        />
+                                        <Label
+                                            htmlFor={`lang-${lang.id}`}
+                                            className="text-gray-400 cursor-pointer hover:text-white transition-colors"
+                                        >
+                                            {lang.label}
+                                        </Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Password */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="password" className="text-gray-300">Senha</Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    required
+                                    className="bg-black/20 border-white/10 text-white placeholder:text-gray-600 mt-1"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="confirmPassword" className="text-gray-300">Confirmar Senha</Label>
+                                <Input
+                                    id="confirmPassword"
+                                    type="password"
+                                    required
+                                    className="bg-black/20 border-white/10 text-white placeholder:text-gray-600 mt-1"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -116,17 +218,24 @@ export default function InterpreterRegisterPage() {
                         </div>
                     )}
 
-                    <Button
-                        type="submit"
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5"
-                        disabled={loading}
-                    >
-                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Criar Conta'}
-                    </Button>
+                    <div className="space-y-4 pt-2">
+                        <Button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-6 text-lg shadow-lg shadow-cyan-500/20"
+                            disabled={loading}
+                        >
+                            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : 'Criar Conta de Intérprete'}
+                        </Button>
 
-                    <p className="text-xs text-center text-gray-500">
-                        Já tem uma conta? <Link href="/interpreter/login" className="text-purple-400 hover:text-purple-300">Faça login</Link>
-                    </p>
+                        <div className="flex justify-between items-center text-sm">
+                            <Link href="/interpreter/login" className="text-cyan-400 hover:text-cyan-300 transition-colors">
+                                Já tem conta? Entrar
+                            </Link>
+                            <Link href="/login" className="text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-colors">
+                                <ArrowLeft className="w-3 h-3" /> Voltar ao Login Geral
+                            </Link>
+                        </div>
+                    </div>
                 </form>
             </div>
         </div>
