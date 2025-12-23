@@ -1,11 +1,13 @@
 'use client'
 
-import { Users, User as UserIcon, Mic, X } from 'lucide-react'
+import { Users, User as UserIcon, Mic, X, Hand } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface Peer {
     userId: string
     role: string
+    name?: string
+    handRaised?: boolean
 }
 
 export function ParticipantList({
@@ -17,7 +19,7 @@ export function ParticipantList({
     onPromote,
     onClose
 }: {
-    peers: any[],
+    peers: any[], // Ideally types peer
     userRole: string,
     userCount: number,
     isHost: boolean,
@@ -63,7 +65,12 @@ export function ParticipantList({
                             </div>
                         </div>
                     </div>
-                    {(userRole?.toLowerCase() === 'interpreter' || userRole?.toLowerCase() === 'admin') && <Mic className="h-3 w-3 text-purple-400" />}
+                    {/* My Status Icons */}
+                    <div className="flex items-center gap-2">
+                        {/* Assuming we can pass myHandRaised info here too if available, but props only have peers. */}
+                        {/* We will just rely on standard role icon for now or add hand if passed */}
+                        {(userRole?.toLowerCase() === 'interpreter' || userRole?.toLowerCase() === 'admin') && <Mic className="h-3 w-3 text-purple-400" />}
+                    </div>
                 </div>
 
                 {/* Others */}
@@ -83,6 +90,11 @@ export function ParticipantList({
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
+                            {peer.handRaised && (
+                                <div className="bg-amber-500/20 p-1 rounded-full animate-pulse" title="Mão levantada">
+                                    <Hand className="h-3 w-3 text-amber-500" />
+                                </div>
+                            )}
                             {(peer.role?.toLowerCase() === 'interpreter' || peer.role?.toLowerCase() === 'admin') && <Mic className="h-3 w-3 text-purple-400" />}
                             {isHost && peer.userId !== hostId && !peer.isPresentation && (
                                 <Button

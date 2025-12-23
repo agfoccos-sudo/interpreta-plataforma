@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Copy, Share2, Check } from 'lucide-react'
 import { useState } from 'react'
 
+import { useLanguage } from '@/components/providers/language-provider'
+
 interface ShareMeetingDialogProps {
     roomId: string
     trigger?: React.ReactNode
@@ -13,6 +15,7 @@ interface ShareMeetingDialogProps {
 }
 
 export function ShareMeetingDialog({ roomId, trigger, className }: ShareMeetingDialogProps) {
+    const { t } = useLanguage()
     const [copied, setCopied] = useState(false)
     const [open, setOpen] = useState(false)
 
@@ -33,7 +36,7 @@ export function ShareMeetingDialog({ roomId, trigger, className }: ShareMeetingD
                 {trigger || (
                     <Button variant="outline" size="sm" className={className}>
                         <Share2 className="h-4 w-4 mr-2" />
-                        Compartilhar
+                        {t('common.share')}
                     </Button>
                 )}
             </DialogTrigger>
@@ -41,12 +44,12 @@ export function ShareMeetingDialog({ roomId, trigger, className }: ShareMeetingD
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Share2 className="h-5 w-5 text-[#06b6d4]" />
-                        Convidar Pessoas
+                        {t('common.invite_people')}
                     </DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col gap-4 py-4">
                     <p className="text-sm text-gray-400">
-                        Compartilhe este link para que outros possam entrar na reunião <strong>{roomId}</strong>.
+                        {t('common.share_description')} <strong>{roomId}</strong>.
                     </p>
                     <div className="flex items-center space-x-2">
                         <div className="grid flex-1 gap-2">

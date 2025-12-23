@@ -8,6 +8,7 @@ export interface Message {
     text: string
     timestamp: number
     role: string
+    recipientId?: string // Who this message is for (optional)
 }
 
 function playNotificationSound() {
@@ -45,6 +46,20 @@ export function useChat(roomId: string, userId: string, userRole: string, userNa
     const channelRef = useRef<any>(null)
     const seenMessagesRef = useRef<Set<string>>(new Set())
 
+    // Helper to parse message content
+    const parseContent = (content: string): { text: string, recipientId?: string } => {
+        try {
+            // Check if it looks like our JSON format unique signature
+            if (content.startsWith('{"v":1')) {
+                const parsed = JSON.parse(content)
+                return { text: parsed.text, recipientId: parsed.recipientId }
+            }
+        } catch (e) {
+            // Ignore parse error, treat as plain text
+        }
+        return { text: content }
+    }
+
     // Keep ref in sync
     useEffect(() => {
         isActiveRef.current = isActive
@@ -63,18 +78,25 @@ export function useChat(roomId: string, userId: string, userRole: string, userNa
 
             if (data) {
                 const mapped: Message[] = data.map((d: any) => {
+                    const { text, recipientId } = parseContent(d.content)
+
                     const msg = {
                         id: d.id,
                         sender: d.sender_id,
                         senderName: d.sender_name,
-                        text: d.content,
+                        text,
                         timestamp: new Date(d.created_at).getTime(),
-                        role: d.role
+                        role: d.role,
+                        recipientId // New field
                     }
                     seenMessagesRef.current.add(msg.id)
                     // Also add a fuzzy key for history
                     seenMessagesRef.current.add(`${msg.sender}:${msg.text}:${Math.floor(msg.timestamp / 2000)}`)
                     return msg
+                }).filter((msg: any) => {
+                    // Filter history: Show if Public OR (Private AND (I am sender OR I am recipient))
+                    if (!msg.recipientId) return true
+                    return msg.sender === userId || msg.recipientId === userId
                 })
                 setMessages(mapped)
             }
@@ -90,6 +112,11 @@ export function useChat(roomId: string, userId: string, userRole: string, userNa
 
             // Deduplicate by exact ID OR fuzzy key (sender+text+time window)
             if (seenMessagesRef.current.has(msg.id) || seenMessagesRef.current.has(fuzzyKey)) {
+                return
+            }
+
+            // FILTER: If private, strict check
+            if (msg.recipientId && msg.recipientId !== userId && msg.sender !== userId) {
                 return
             }
 
@@ -118,13 +145,16 @@ export function useChat(roomId: string, userId: string, userRole: string, userNa
                     const newMsg = payload.new as any
                     if (!newMsg) return
 
+                    const { text, recipientId } = parseContent(newMsg.content)
+
                     const msg: Message = {
                         id: newMsg.id,
                         sender: newMsg.sender_id,
                         senderName: newMsg.sender_name,
-                        text: newMsg.content,
+                        text,
                         timestamp: new Date(newMsg.created_at).getTime(),
-                        role: newMsg.role
+                        role: newMsg.role,
+                        recipientId
                     }
                     handleNewMessage(msg, true)
                 }
@@ -141,7 +171,7 @@ export function useChat(roomId: string, userId: string, userRole: string, userNa
         }
     }, [roomId, userId])
 
-    const sendMessage = async (text: string) => {
+    const sendMessage = async (text: string, recipientId?: string) => {
         if (!text.trim()) return
 
         const msgId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15)
@@ -153,7 +183,8 @@ export function useChat(roomId: string, userId: string, userRole: string, userNa
             senderName: userName,
             text,
             timestamp,
-            role: userRole
+            role: userRole,
+            recipientId
         }
 
         // Add to seen BEFORE optimistic update to avoid duplicates if broadcast arrives too fast
@@ -173,12 +204,18 @@ export function useChat(roomId: string, userId: string, userRole: string, userNa
 
         // 3. Persistent storage
         try {
+            // If recipientId is present, we wrap content in JSON
+            let contentToSave = text
+            if (recipientId) {
+                contentToSave = JSON.stringify({ v: 1, text, recipientId })
+            }
+
             await supabase.from('messages').insert({
                 id: msgId,
                 room_id: roomId,
                 sender_id: userId,
                 sender_name: userName,
-                content: text,
+                content: contentToSave,
                 role: userRole
             })
         } catch (e) {

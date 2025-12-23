@@ -141,9 +141,13 @@
 
   .dark {
     --background: 222.2 84% 4.9%;
+    /* Matches #020817 roughly, but user asked for #020817 specific hex equivalent in HSL or simply overriding common bg */
+    --background: 222 47% 5%;
+    /* #020817 HSL is approx 222 47 5 */
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 5%;
+    /* #020817 */
     --card-foreground: 210 40% 98%;
 
     --popover: 222.2 84% 4.9%;

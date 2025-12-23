@@ -80,21 +80,21 @@ export default function LandingPage() {
             <Logo className="scale-110" />
             <div className="hidden md:flex items-center gap-1">
               <span className="px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase bg-cyan-500/10 border border-cyan-500/20 rounded text-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.1)]">
-                Enterprise
+                {t('landing.badge_enterprise')}
               </span>
             </div>
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
-            <Link href="#features" className="hover:text-white transition-colors">Funcionalidades</Link>
-            <Link href="#tech" className="hover:text-white transition-colors">Tecnologia</Link>
-            <Link href="#use-cases" className="hover:text-white transition-colors">Casos de Uso</Link>
-            <Link href="#pricing" className="hover:text-white transition-colors">{t('landing.pricing') || 'Planos'}</Link>
+            <Link href="#features" className="hover:text-white transition-colors">{t('landing.features')}</Link>
+            <Link href="#tech" className="hover:text-white transition-colors">{t('landing.about')}</Link>
+            <Link href="#use-cases" className="hover:text-white transition-colors">{t('landing.use_cases_title')}</Link>
+            <Link href="#pricing" className="hover:text-white transition-colors">{t('landing.pricing')}</Link>
           </nav>
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
             <Link href="/login" className="hidden md:block">
               <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-white/5 font-medium">
-                Área do Cliente
+                {t('landing.client_area')}
               </Button>
             </Link>
             <Link href="/login" className="md:hidden">
@@ -108,7 +108,7 @@ export default function LandingPage() {
               disabled={isLoadingDemo}
             >
               {isLoadingDemo ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {isLoadingDemo ? 'Iniciando...' : <><span className="md:hidden">Demo</span><span className="hidden md:inline">Testar Demonstração</span></>}
+              {isLoadingDemo ? t('common.loading') : <><span className="md:hidden">{t('landing.cta_demo_short')}</span><span className="hidden md:inline">{t('landing.cta_demo')}</span></>}
             </Button>
           </div>
         </div>
@@ -129,20 +129,19 @@ export default function LandingPage() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
                 </span>
-                Tecnologia de Tradução Simultânea P2P
+                {t('landing.badge_p2p')}
               </div>
             </motion.div>
 
             <motion.h1 variants={itemVariants} className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-[1.1] text-white">
-              Sua reunião multilíngue com<br />
+              {t('landing.hero_title_1')}<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">
-                interpretação simultânea humana
+                {t('landing.hero_title_2')}
               </span><br />
-              em qualquer idioma.
             </motion.h1>
 
             <motion.p variants={itemVariants} className="text-lg md:text-xl text-gray-400 max-w-4xl mx-auto leading-relaxed font-light">
-              Perfeita para eventos multilíngue presenciais, híbridos e totalmente remotos com interpretação simultânea feita por profissionais especializados no seu idioma e ramo de trabalho.
+              {t('landing.hero_subtitle')}
             </motion.p>
 
 
@@ -155,10 +154,10 @@ export default function LandingPage() {
                 disabled={isLoadingDemo}
               >
                 {isLoadingDemo ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
-                {t('landing.cta_demo') || 'Experimentar Agora'} <ArrowRight className="ml-2 h-5 w-5" />
+                {t('landing.cta_demo')} <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-white/10 bg-white/5 text-white hover:bg-white/10 rounded-full backdrop-blur-sm" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>
-                Ver Planos
+                {t('landing.cta_specialist')}
               </Button>
             </motion.div>
           </motion.div>
@@ -167,7 +166,7 @@ export default function LandingPage() {
         {/* TRUST INDICATORS */}
         <section className="py-10 border-y border-white/5 bg-white/[0.02]">
           <div className="container mx-auto px-6 text-center">
-            <p className="text-sm text-gray-500 uppercase tracking-widest mb-8">Confiança de líderes globais</p>
+            <p className="text-sm text-gray-500 uppercase tracking-widest mb-8">{t('landing.trust_leaders')}</p>
             <div className="w-full overflow-hidden flex">
               <div className="flex animate-[scroll_10s_linear_infinite] w-max gap-12 min-w-full items-center">
                 {/* Logos Set 1 */}
@@ -193,10 +192,10 @@ export default function LandingPage() {
           <div className="container mx-auto px-6">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-                Engenharia de Precisão
+                {t('landing.tech_section_title')}
               </h2>
               <p className="text-gray-400 max-w-2xl mx-auto">
-                Cada funcionalidade foi construída para garantir a máxima clareza e estabilidade em comunicações críticas.
+                {t('landing.tech_section_desc')}
               </p>
             </div>
 
@@ -206,9 +205,9 @@ export default function LandingPage() {
                 <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Video className="w-7 h-7 text-blue-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Vídeo HD 50 FPS</h3>
+                <h3 className="text-xl font-bold text-white mb-3">{t('landing.feature_1_title')}</h3>
                 <p className="text-gray-400 leading-relaxed">
-                  Qualidade cristalina com adaptação dinâmica de largura de banda. Seus intérpretes verão cada expressão facial, garantindo uma tradução mais precisa.
+                  {t('landing.feature_1_desc')}
                 </p>
               </div>
 
@@ -217,9 +216,9 @@ export default function LandingPage() {
                 <div className="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Mic className="w-7 h-7 text-purple-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Canais de Áudio Isolados</h3>
+                <h3 className="text-xl font-bold text-white mb-3">{t('landing.feature_2_title')}</h3>
                 <p className="text-gray-400 leading-relaxed">
-                  Arquitetura de áudio multi-track permite que intérpretes trabalhem sem interferência, enquanto ouvintes selecionam seu idioma preferido instantaneamente.
+                  {t('landing.feature_2_desc')}
                 </p>
               </div>
 
@@ -228,9 +227,9 @@ export default function LandingPage() {
                 <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Globe className="w-7 h-7 text-emerald-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Cobertura Global P2P</h3>
+                <h3 className="text-xl font-bold text-white mb-3">{t('landing.feature_3_title')}</h3>
                 <p className="text-gray-400 leading-relaxed">
-                  Nossa malha peer-to-peer conecta participantes diretamente, reduzindo a latência para milissegundos, independentemente da localização geográfica.
+                  {t('landing.feature_3_desc')}
                 </p>
               </div>
             </div>
@@ -251,8 +250,8 @@ export default function LandingPage() {
                       <span className="text-cyan-500 font-bold">01</span>
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-white mb-2">Conferências Internacionais</h3>
-                      <p className="text-gray-400">Conecte palestrantes e audiências de múltiplos países sem o custo logístico de cabines físicas.</p>
+                      <h3 className="text-xl font-bold text-white mb-2">{t('landing.use_case_1_title')}</h3>
+                      <p className="text-gray-400">{t('landing.use_case_1_desc')}</p>
                     </div>
                   </div>
                   <div className="flex gap-4">
@@ -260,8 +259,8 @@ export default function LandingPage() {
                       <span className="text-cyan-500 font-bold">02</span>
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-white mb-2">Treinamentos Corporativos</h3>
-                      <p className="text-gray-400">Garanta que sua força de trabalho global receba treinamento em sua língua nativa com precisão técnica.</p>
+                      <h3 className="text-xl font-bold text-white mb-2">{t('landing.use_case_2_title')}</h3>
+                      <p className="text-gray-400">{t('landing.use_case_2_desc')}</p>
                     </div>
                   </div>
                   <div className="flex gap-4">
@@ -269,8 +268,8 @@ export default function LandingPage() {
                       <span className="text-cyan-500 font-bold">03</span>
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-white mb-2">Reuniões de Conselho</h3>
-                      <p className="text-gray-400">Segurança de nível empresarial e latência zero para tomadas de decisão críticas.</p>
+                      <h3 className="text-xl font-bold text-white mb-2">{t('landing.use_case_3_title')}</h3>
+                      <p className="text-gray-400">{t('landing.use_case_3_desc')}</p>
                     </div>
                   </div>
                 </div>
@@ -302,17 +301,17 @@ export default function LandingPage() {
           <div className="container mx-auto px-6">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-                {t('landing.pricing_title') || 'Planos Flexíveis'}
+                {t('landing.pricing_title')}
               </h2>
               <p className="text-gray-400 max-w-2xl mx-auto">
-                {t('landing.pricing_subtitle') || 'Escolha a melhor opção para sua organização.'}
+                {t('landing.pricing_subtitle')}
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
               {/* Monthly */}
               <div className="p-8 rounded-3xl border border-white/10 bg-[#0a0f1e] hover:border-cyan-500/30 transition-all flex flex-col">
-                <h3 className="text-xl font-bold text-white mb-2">{t('landing.plan_monthly_name') || 'Mensal'}</h3>
+                <h3 className="text-xl font-bold text-white mb-2">{t('landing.plan_monthly_name')}</h3>
                 <div className="mb-6">
                   <span className="text-4xl font-bold text-white">{t('landing.plan_monthly_price')}</span>
                   <span className="text-gray-500 text-sm ml-2">{t('landing.plan_monthly_period')}</span>
@@ -320,7 +319,7 @@ export default function LandingPage() {
                 <p className="text-gray-400 text-sm mb-8 flex-grow">{t('landing.plan_monthly_desc')}</p>
                 <Link href="/login">
                   <Button className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10">
-                    {t('landing.button_subscribe') || 'Começar Agora'}
+                    {t('landing.button_subscribe')}
                   </Button>
                 </Link>
               </div>
@@ -330,7 +329,7 @@ export default function LandingPage() {
                 <div className="absolute top-0 right-0 bg-cyan-500 text-[#020817] text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-2xl">
                   POPULAR
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">{t('landing.plan_semiannual_name') || 'Semestral'}</h3>
+                <h3 className="text-xl font-bold text-white mb-2">{t('landing.plan_semiannual_name')}</h3>
                 <div className="mb-6">
                   <span className="text-4xl font-bold text-white">{t('landing.plan_semiannual_price')}</span>
                   <span className="text-gray-500 text-sm ml-2">{t('landing.plan_semiannual_period')}</span>
@@ -338,14 +337,14 @@ export default function LandingPage() {
                 <p className="text-gray-400 text-sm mb-8 flex-grow">{t('landing.plan_semiannual_desc')}</p>
                 <Link href="/login">
                   <Button className="w-full bg-cyan-500 hover:bg-cyan-400 text-[#020817] font-bold">
-                    {t('landing.button_subscribe') || 'Começar Agora'}
+                    {t('landing.button_subscribe')}
                   </Button>
                 </Link>
               </div>
 
               {/* Annual */}
               <div className="p-8 rounded-3xl border border-white/10 bg-[#0a0f1e] hover:border-cyan-500/30 transition-all flex flex-col">
-                <h3 className="text-xl font-bold text-white mb-2">{t('landing.plan_yearly_name') || 'Anual'}</h3>
+                <h3 className="text-xl font-bold text-white mb-2">{t('landing.plan_yearly_name')}</h3>
                 <div className="mb-6">
                   <span className="text-4xl font-bold text-white">{t('landing.plan_yearly_price')}</span>
                   <span className="text-gray-500 text-sm ml-2">{t('landing.plan_yearly_period')}</span>
@@ -353,7 +352,7 @@ export default function LandingPage() {
                 <p className="text-gray-400 text-sm mb-8 flex-grow">{t('landing.plan_yearly_desc')}</p>
                 <Link href="/login">
                   <Button className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10">
-                    {t('landing.button_subscribe') || 'Começar Agora'}
+                    {t('landing.button_subscribe')}
                   </Button>
                 </Link>
               </div>
@@ -365,31 +364,39 @@ export default function LandingPage() {
         <section className="py-24 bg-[#020817] border-t border-white/5">
           <div className="container mx-auto px-6 max-w-3xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Perguntas Frequentes</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">{t('landing.faq_title')}</h2>
             </div>
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1" className="border-white/10">
                 <AccordionTrigger className="text-lg text-white hover:text-cyan-400 hover:no-underline text-left">
-                  Preciso instalar algum software?
+                  {t('landing.faq_1_q')}
                 </AccordionTrigger>
                 <AccordionContent className="text-gray-400">
-                  Não. Nossa plataforma é 100% baseada em navegador (WebRTC), funcionando nativamente no Chrome, Edge, Firefox e Safari sem plugins ou downloads.
+                  {t('landing.faq_1_a')}
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-2" className="border-white/10">
                 <AccordionTrigger className="text-lg text-white hover:text-cyan-400 hover:no-underline text-left">
-                  Qual é o limite de participantes?
+                  {t('landing.faq_2_q')}
                 </AccordionTrigger>
                 <AccordionContent className="text-gray-400">
-                  Nossa arquitetura escala horizontalmente. Suportamos de pequenas reuniões executivas a webinars com milhares de espectadores passivos, mantendo a qualidade do áudio da interpretação.
+                  {t('landing.faq_2_a')}
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-3" className="border-white/10">
                 <AccordionTrigger className="text-lg text-white hover:text-cyan-400 hover:no-underline text-left">
-                  Posso testar antes de decidir?
+                  {t('landing.faq_3_q')}
                 </AccordionTrigger>
                 <AccordionContent className="text-gray-400">
-                  Sim! Oferecemos <strong>7 dias de garantia incondicional</strong>. Você assina, utiliza a plataforma completa e, se por qualquer motivo não ficar satisfeito dentro da primeira semana, devolvemos 100% do seu dinheiro. Sem burocracia.
+                  {t('landing.faq_3_a')}
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="item-4" className="border-white/10">
+                <AccordionTrigger className="text-lg text-white hover:text-cyan-400 hover:no-underline text-left">
+                  {t('landing.faq_4_q')}
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-400">
+                  {t('landing.faq_4_a')}
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
@@ -401,7 +408,7 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-[#020817] to-blue-950/20" />
           <div className="container mx-auto px-6 relative z-10 text-center">
             <h2 className="text-4xl md:text-6xl font-bold mb-8 text-white tracking-tight">
-              Pronto para globalizar sua comunicação?
+              {t('landing.ready_to_globalize')}
             </h2>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button
@@ -415,7 +422,7 @@ export default function LandingPage() {
               </Button>
             </div>
             <p className="mt-8 text-sm text-gray-500">
-              Sem cartão de crédito. Acesso imediato ao ambiente de teste.
+              {t('landing.no_credit_card')}
             </p>
           </div>
         </section>
@@ -428,13 +435,13 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <div className="order-2 lg:order-1">
                 <div className="inline-block px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold uppercase tracking-widest mb-6">
-                  Backed by Experience
+                  {t('landing.backed_by_exp')}
                 </div>
                 <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
-                  Uma iniciativa da <span className="text-cyan-400">Interpret Brasil</span>
+                  {t('landing.initiative_ib')} <span className="text-cyan-400">{t('landing.initiative_ib_name')}</span>
                 </h2>
                 <p className="text-gray-400 text-lg leading-relaxed mb-8">
-                  A TalkTube é um produto desenvolvido pela <strong>IB - Interpret Brasil</strong>, empresa líder com mais de 20 anos de experiência em tradução e interpretação de eventos globais. Combinamos a expertise humana de intérpretes renomados com tecnologia de ponta para entregar a melhor experiência de comunicação multilíngue.
+                  {t('landing.talktube_desc_1')} <strong>IB - {t('landing.talktube_desc_2')}</strong>{t('landing.talktube_desc_3')}
                 </p>
                 <div className="flex gap-4">
                   <a
@@ -443,7 +450,7 @@ export default function LandingPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold transition-all hover:scale-105"
                   >
-                    Conheça a Interpret Brasil <ArrowRight className="w-4 h-4" />
+                    {t('landing.meet_ib')} <ArrowRight className="w-4 h-4" />
                   </a>
                 </div>
               </div>
@@ -457,7 +464,7 @@ export default function LandingPage() {
                       className="absolute inset-0 w-full h-full object-cover object-center opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-700"
                     />
                     <div className="absolute bottom-4 left-4 right-4 z-10 bg-black/60 backdrop-blur-sm p-4 rounded-xl border border-white/10 text-center">
-                      <span className="text-xl font-bold text-white block mb-0.5">20+ Anos</span>
+                      <span className="text-xl font-bold text-white block mb-0.5">{t('landing.years_excellence')}</span>
                       <span className="text-xs text-gray-400 uppercase tracking-widest">de Excelência</span>
                     </div>
                   </div>
@@ -470,7 +477,7 @@ export default function LandingPage() {
 
             <div className="text-center">
               <blockquote className="text-2xl md:text-3xl font-serif italic text-cyan-200/90 max-w-3xl mx-auto leading-relaxed">
-                "A comunicação oral é um fenômeno humano, vai além de palavras."
+                "{t('landing.quote')}"
               </blockquote>
             </div>
           </div>
@@ -481,7 +488,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center opacity-60 hover:opacity-100 transition-opacity">
           <Logo className="scale-90 mb-4 md:mb-0" />
           <div className="text-xs text-gray-600">
-            &copy; 2024 TalkTube. Todos os direitos reservados.
+            {t('landing.footer_copyright')}
           </div>
         </div>
       </footer>

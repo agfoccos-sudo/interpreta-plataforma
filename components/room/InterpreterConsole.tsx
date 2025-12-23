@@ -19,7 +19,9 @@ export function InterpreterConsole({
     onLanguageChange,
     isListeningToFloor,
     onListenToFloor,
-    onHandover
+    onHandover,
+    availableLanguages = LANGUAGES, // System available languages
+    allowedLanguages // Specific allowed languages for this user (if restricted)
 }: {
     active: boolean,
     onToggleActive: () => void,
@@ -27,9 +29,17 @@ export function InterpreterConsole({
     onLanguageChange: (lang: string) => void,
     isListeningToFloor: boolean,
     onListenToFloor: () => void,
-    onHandover: () => void
+    onHandover: () => void,
+    availableLanguages?: typeof LANGUAGES,
+    allowedLanguages?: string[]
 }) {
     const [isCollapsed, setIsCollapsed] = React.useState(false)
+
+    // Filter available languages based on allowedLanguages if provided
+    const selectableLanguages = React.useMemo(() => {
+        if (!allowedLanguages || allowedLanguages.length === 0) return availableLanguages
+        return availableLanguages.filter(l => allowedLanguages.includes(l.code))
+    }, [availableLanguages, allowedLanguages])
 
     return (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-auto max-w-[95%] z-50 flex flex-col items-center gap-2">
@@ -45,7 +55,8 @@ export function InterpreterConsole({
                     <DropdownMenuTrigger asChild>
                         <Button
                             variant="ghost"
-                            className="h-12 pl-2 pr-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl flex items-center gap-3 active:scale-95 transition-all text-left"
+                            disabled={allowedLanguages && allowedLanguages.length === 1 && allowedLanguages[0] === currentLanguage}
+                            className="h-12 pl-2 pr-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl flex items-center gap-3 active:scale-95 transition-all text-left disabled:opacity-100 disabled:cursor-default"
                         >
                             <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400">
                                 <Globe className="h-4 w-4" />
@@ -53,15 +64,15 @@ export function InterpreterConsole({
                             <div className="flex flex-col">
                                 <span className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider">Canal de Saída</span>
                                 <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                                    {LANGUAGES.find(l => l.code === currentLanguage)?.flag}
-                                    {LANGUAGES.find(l => l.code === currentLanguage)?.name || "Selecione..."}
+                                    {selectableLanguages.find(l => l.code === currentLanguage)?.flag}
+                                    {selectableLanguages.find(l => l.code === currentLanguage)?.name || "Selecione..."}
                                 </span>
                             </div>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent side="top" align="start" className="w-56 max-h-[300px] overflow-y-auto custom-scrollbar bg-zinc-900 border-zinc-800 p-1 rounded-xl shadow-2xl">
                         <DropdownMenuLabel className="text-[10px] uppercase text-zinc-500 font-bold px-2 py-1.5">Mudar para</DropdownMenuLabel>
-                        {LANGUAGES.map((lang) => (
+                        {selectableLanguages.map((lang) => (
                             <DropdownMenuItem
                                 key={lang.code}
                                 onClick={() => onLanguageChange(lang.code)}

@@ -6,7 +6,10 @@ import { Zap, Loader2 } from 'lucide-react'
 import { createInstantMeeting } from '@/app/dashboard/actions'
 import { toast } from 'sonner'
 
+import { useLanguage } from '@/components/providers/language-provider'
+
 export function InstantMeetingButton() {
+    const { t } = useLanguage()
     const [loading, setLoading] = useState(false)
 
     const handleInstantMeeting = async () => {
@@ -14,7 +17,7 @@ export function InstantMeetingButton() {
             setLoading(true)
             await createInstantMeeting()
         } catch (error: any) {
-            toast.error('Erro ao iniciar reunião: ' + (error.message || 'Desconhecido'))
+            toast.error(t('dashboard.error_meeting') + (error.message || 'Desconhecido'))
             setLoading(false)
         }
     }
@@ -30,7 +33,7 @@ export function InstantMeetingButton() {
             ) : (
                 <Zap className="h-5 w-5 mr-2 fill-current group-hover:animate-pulse" />
             )}
-            {loading ? 'Preparando...' : 'Iniciar Agora'}
+            {loading ? t('dashboard.preparing') : t('dashboard.start_now')}
         </Button>
     )
 }

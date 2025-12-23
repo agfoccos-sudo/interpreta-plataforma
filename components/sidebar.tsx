@@ -177,7 +177,7 @@ export function Sidebar({ user, userRole, userAvatar, unreadMessagesCount = 0 }:
                     <div className="flex flex-col min-w-0">
                         <span className="text-sm font-bold text-foreground dark:text-white truncate max-w-[120px]">{user.email?.split('@')[0]}</span>
                         <span className="text-[10px] text-muted-foreground dark:text-blue-300/80 font-bold uppercase tracking-wider">
-                            {userRole === 'admin' ? 'Admin' : 'Usuário'}
+                            {userRole === 'admin' ? t('common.role_admin') : t('common.role_user')}
                         </span>
                     </div>
                 </div>

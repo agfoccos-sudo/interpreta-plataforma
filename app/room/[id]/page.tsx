@@ -39,15 +39,17 @@ import { VideoGrid } from '@/components/room/video-grid'
 import { LayoutGrid, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { PreCallLobby } from '@/components/room/pre-call-lobby'
 import { SettingsDialog } from '@/components/room/settings-dialog'
+import { useLanguage } from '@/components/providers/language-provider'
 
 export default function RoomPage({ params, searchParams }: { params: Promise<{ id: string }>, searchParams: Promise<{ role?: string }> }) {
     // ... preceding state remains ...
     const { id: roomId } = use(params)
     const { role } = use(searchParams)
+    const { t } = useLanguage()
 
     // User Identity Logic
     const [userId, setUserId] = useState('')
-    const [userName, setUserName] = useState('Participante')
+    const [userName, setUserName] = useState(t('room.participant_default'))
     const [currentRole, setCurrentRole] = useState<string>('participant')
     const [isLoaded, setIsLoaded] = useState(false)
 
@@ -65,7 +67,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                     .single()
 
                 if (profile) {
-                    setUserName(profile.full_name || profile.username || user.email?.split('@')[0] || 'Participante')
+                    setUserName(profile.full_name || profile.username || user.email?.split('@')[0] || t('room.participant_default'))
                     setCurrentRole(profile.role || 'participant')
                 }
 
@@ -93,7 +95,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 return
                             }
 
-                            alert('Esta reunião excedeu o limite de tempo de 120 minutos e foi encerrada.')
+                            alert(t('room.meeting_expired_title'))
                             window.location.href = '/dashboard'
                             return
                         }
@@ -107,42 +109,63 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         return
                     }
 
-                    alert('Esta reunião já foi encerrada.')
+                    alert(t('room.meeting_ended_title'))
                     window.location.href = '/dashboard'
                     return
                 }
 
+                // Check Meeting Interpreters (Item 1)
                 if (meeting?.settings?.interpreters) {
-                    const isPreConfigured = meeting.settings.interpreters.some(
+                    const interpreterConfig = meeting.settings.interpreters.find(
                         (i: any) => i.email.toLowerCase() === user.email?.toLowerCase()
                     )
-                    if (isPreConfigured) {
+
+                    if (interpreterConfig) {
                         console.log(`User identified as pre-configured interpreter!`)
                         setCurrentRole('interpreter')
+                        // Support single 'lang' or array 'langs'
+                        if (interpreterConfig.lang) {
+                            setAssignedLanguages([interpreterConfig.lang])
+                            // Auto-set the broadcast language
+                            setMyBroadcastLang(interpreterConfig.lang)
+                        } else if (interpreterConfig.langs) {
+                            setAssignedLanguages(interpreterConfig.langs)
+                            setMyBroadcastLang(interpreterConfig.langs[0])
+                        }
                     }
+                }
+
+                if (meeting?.settings?.active_languages) {
+                    setActiveLanguages(meeting.settings.active_languages)
                 }
             } else {
                 // Guests also need to check expiration? Ideally yes, but server action is somewhat protected.
                 // Let's do a client check first to fail fast.
-                const { data: meeting } = await supabase.from('meetings').select('status, start_time').eq('id', roomId).single()
+                const { data: meeting } = await supabase.from('meetings').select('status, start_time, settings').eq('id', roomId).single()
+
                 if (meeting?.status === 'ended') {
-                    alert('Esta reunião já foi encerrada.')
+                    alert(t('room.meeting_ended_title'))
                     window.location.href = '/dashboard'
                     return
                 }
+
                 if (meeting?.status === 'active' && meeting.start_time) {
                     const startTime = new Date(meeting.start_time).getTime()
                     const diffMinutes = (Date.now() - startTime) / (1000 * 60)
                     if (diffMinutes > 120) {
-                        alert('Esta reunião excedeu o limite de uso.')
+                        alert(t('room.meeting_limit_title'))
                         window.location.href = '/login' // Guests to login
                         return
                     }
                 }
 
+                if (meeting?.settings?.active_languages) {
+                    setActiveLanguages(meeting.settings.active_languages)
+                }
+
                 const guestId = 'guest-' + Math.random().toString(36).substr(2, 9)
                 setUserId(guestId)
-                setUserName('Convidado')
+                setUserName(t('room.guest_default'))
                 setCurrentRole('participant')
             }
             setIsLoaded(true)
@@ -161,6 +184,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     const [isSharing, setIsSharing] = useState(false)
     const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([])
     const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([])
+    const [activeLanguages, setActiveLanguages] = useState<string[]>([]) // Dynamic languages from DB
+    const [assignedLanguages, setAssignedLanguages] = useState<string[]>([]) // For restricted interpreters
 
     // Layout and Join States
     const [isJoined, setIsJoined] = useState(false)
@@ -272,6 +297,13 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         }
     }, [peers, isSharing])
 
+    // Sync active language to metadata when interpreter
+    useEffect(() => {
+        if (isJoined && currentRole.toLowerCase().includes('interpreter')) {
+            updateMetadata({ language: myBroadcastLang })
+        }
+    }, [myBroadcastLang, isJoined, currentRole, updateMetadata])
+
     const { messages, sendMessage, unreadCount, markAsRead, setIsActive: setIsChatActive } = useChat(roomId, userId, currentRole, userName)
 
     useEffect(() => {
@@ -290,7 +322,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
             const wasRaised = prevPeersHandRef.current[p.userId]
             if (p.handRaised && !wasRaised) {
                 // NEW HAND RAISED
-                setAttentionToast({ id: p.userId, name: p.name || 'Alguém' })
+                setAttentionToast({ id: p.userId, name: p.name || t('room.someone') })
                 setTimeout(() => setAttentionToast(null), 5000)
 
                 const audio = new Audio('/sounds/notification.mp3') // Assume existance or fallback to synth
@@ -338,9 +370,13 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         }
     }
 
+    const availableSystemLanguages = activeLanguages.length > 0
+        ? LANGUAGES.filter(l => activeLanguages.includes(l.code))
+        : LANGUAGES
+
     const ROOM_LANGUAGES = [
-        { code: 'original', name: 'Áudio Original (Piso)', flag: '🏳️' },
-        ...LANGUAGES
+        { code: 'original', name: t('room.original_audio'), flag: '🏳️' },
+        ...availableSystemLanguages
     ]
 
     const handleLangChange = (code: string) => {
@@ -382,7 +418,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     }
 
     return (
-        <div className="h-screen bg-background flex flex-col relative overflow-hidden text-foreground transition-colors duration-500">
+        <div className="h-screen bg-[#020817] flex flex-col relative overflow-hidden text-foreground transition-colors duration-500">
             {/* Top Bar - Auto Hides */}
             <div className={`absolute top-0 left-0 right-0 p-4 z-[40] flex justify-between items-center transition-all duration-500 ${showUI ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10 pointer-events-none'}`}>
                 <div className="bg-card/40 backdrop-blur-md px-4 py-2 rounded-full pointer-events-auto border border-border flex items-center gap-4 shadow-xl">
@@ -403,7 +439,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
                     <div className={`px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1 ${userCount > 1 ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/50'}`}>
                         <Users className="h-3 w-3" />
-                        {userCount} Online
+                        {userCount} {t('room.online')}
                     </div>
                 </div>
 
@@ -413,7 +449,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="flex items-center gap-1.5 md:gap-2 px-2 md:px-4 h-8 md:h-10 font-bold text-[10px] md:text-sm rounded-lg md:rounded-xl hover:bg-white/10">
                                 <Maximize2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                                <span className="hidden xs:inline">Visualização</span>
+                                <span className="hidden xs:inline">{t('room.view_mode')}</span>
                                 <ChevronUp className="h-3 w-3 opacity-50 rotate-180" />
                             </Button>
                         </DropdownMenuTrigger>
@@ -424,7 +460,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             >
                                 <div className="flex items-center gap-2 md:gap-3">
                                     <LayoutGrid className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                                    <span className="font-semibold text-xs md:text-sm">Galeria</span>
+                                    <span className="font-semibold text-xs md:text-sm">{t('room.gallery_view')}</span>
                                 </div>
                                 {viewMode === 'gallery' && <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-[#06b6d4]" />}
                             </DropdownMenuItem>
@@ -434,7 +470,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             >
                                 <div className="flex items-center gap-2 md:gap-3">
                                     <Users className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                                    <span className="font-semibold text-xs md:text-sm">Orador</span>
+                                    <span className="font-semibold text-xs md:text-sm">{t('room.speaker_view')}</span>
                                 </div>
                                 {viewMode === 'speaker' && <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-[#06b6d4]" />}
                             </DropdownMenuItem>
@@ -452,7 +488,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 className="rounded-lg md:rounded-xl p-2 md:p-3 flex items-center gap-2 md:gap-3 cursor-pointer"
                             >
                                 <Maximize2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                                <span className="font-semibold text-xs md:text-sm">Tela Cheia</span>
+                                <span className="font-semibold text-xs md:text-sm">{t('room.fullscreen')}</span>
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -493,7 +529,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 <ChevronLeft className="h-5 w-5" />
                             </Button>
                             <span className="text-xs font-bold text-white">
-                                {currentPage} de {totalPages}
+                                {currentPage} {t('room.page_of')} {totalPages}
                             </span>
                             <Button
                                 variant="ghost"
@@ -522,6 +558,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 <ChatPanel
                                     messages={messages}
                                     userId={userId}
+                                    peers={peers}
                                     onSendMessage={sendMessage}
                                     onClose={() => setActiveSidebar(null)} // Add close prop
                                 />
@@ -565,8 +602,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             <Hand className="h-6 w-6 text-white" />
                         </div>
                         <div>
-                            <div className="text-[10px] font-black uppercase tracking-widest opacity-70">Atenção</div>
-                            <div className="text-lg font-black">{attentionToast.name} levantou a mão!</div>
+                            <div className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('room.attention')}</div>
+                            <div className="text-lg font-black">{attentionToast.name} {t('room.raised_hand')}</div>
                         </div>
                     </motion.div>
                 )}
@@ -575,7 +612,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
             {/* Error Banner */}
             {mediaError && (
                 <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-8 py-4 rounded-[2rem] z-50 text-center animate-bounce font-black shadow-2xl border-4 border-white/20">
-                    ⚠️ ERRO DE CÂMERA: {mediaError}
+                    ⚠️ {t('room.camera_error')} {mediaError}
                 </div>
             )}
 
@@ -595,6 +632,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                     isListeningToFloor={selectedLang === 'original'}
                     onListenToFloor={() => handleLangChange('original')}
                     onHandover={() => sendEmoji('🔄')}
+                    availableLanguages={availableSystemLanguages}
+                    allowedLanguages={assignedLanguages.length > 0 ? assignedLanguages : undefined}
                 />
             )}
 
@@ -608,7 +647,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         className="fixed bottom-32 left-1/2 -translate-x-1/2 w-80 bg-card/90 backdrop-blur-2xl border border-border rounded-[2.5rem] shadow-3xl p-4 z-[70]"
                     >
                         <div className="text-[10px] font-black text-muted-foreground px-4 py-2 uppercase tracking-[0.3em] mb-2">
-                            Canais de Tradução
+                            {t('room.translation_channels')}
                         </div>
                         <div className="max-h-[350px] overflow-y-auto pr-1 space-y-1 custom-scrollbar">
                             {ROOM_LANGUAGES.map((lang) => (
@@ -657,7 +696,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="top" align="center" className="w-64 mb-4 rounded-2xl bg-black/90 backdrop-blur-3xl border-white/10 p-2 shadow-2xl">
-                                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">Microfone</DropdownMenuLabel>
+                                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">{t('room.microphone')}</DropdownMenuLabel>
                                 {audioInputs.map((device, i) => (
                                     <DropdownMenuItem
                                         key={i}
@@ -691,7 +730,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="top" align="center" className="w-64 mb-4 rounded-2xl bg-black/90 backdrop-blur-3xl border-white/10 p-2 shadow-2xl">
-                                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">Câmera</DropdownMenuLabel>
+                                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">{t('room.camera')}</DropdownMenuLabel>
                                 {videoInputs.map((device, i) => (
                                     <DropdownMenuItem
                                         key={i}
@@ -716,26 +755,26 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                     isSharing ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20 animate-pulse" : "bg-accent/50 text-foreground hover:bg-accent",
                                     isAnySharing && !isSharing && "opacity-50 cursor-not-allowed grayscale"
                                 )}
-                                title={isAnySharing && !isSharing ? "Sala Ocupada" : "Compartilhar"}
+                                title={isAnySharing && !isSharing ? t('room.room_busy') : t('room.share')}
                             >
                                 <Monitor className="h-5 w-5 md:h-6 md:w-6" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent side="top" align="center" className="w-56 mb-4 rounded-2xl bg-card/80 backdrop-blur-xl border-border p-2 shadow-2xl">
-                            <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">Opções de Compartilhamento</DropdownMenuLabel>
+                            <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">{t('room.share_options')}</DropdownMenuLabel>
                             <DropdownMenuItem
                                 onClick={handleToggleShare}
                                 className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5 flex items-center gap-2"
                             >
                                 <Monitor className="h-4 w-4" />
-                                {isSharing ? "Parar Compartilhamento" : "Compartilhar Tela"}
+                                {isSharing ? t('room.stop_share') : t('room.share_screen')}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 onClick={() => fileInputRef.current?.click()}
                                 className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5 flex items-center gap-2"
                             >
                                 <PlayCircle className="h-4 w-4" />
-                                Compartilhar Vídeo Local
+                                {t('room.share_local_video')}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -768,7 +807,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             localHandRaised ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20" : "bg-accent/50 text-foreground hover:bg-accent"
                         )}
                         onClick={toggleHand}
-                        title="Levantar a Mão"
+                        title={t('room.raise_hand')}
                     >
                         <Hand className={cn("h-5 w-5 md:h-6 md:w-6", localHandRaised && "animate-bounce")} />
                     </Button>
@@ -780,7 +819,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 variant="secondary"
                                 size="icon"
                                 className="h-14 w-14 rounded-2xl shadow-xl bg-accent/50 text-foreground hover:bg-accent border-0"
-                                title="Enviar Reação"
+                                title={t('room.send_reaction')}
                             >
                                 <Smile className="h-6 w-6" />
                             </Button>
@@ -812,7 +851,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 "h-14 w-14 rounded-2xl shadow-xl transition-all active:scale-95 border-0",
                                 selectedLang !== 'original' ? "bg-[#06b6d4] text-white hover:bg-[#0891b2]" : "bg-accent/50 text-foreground hover:bg-accent"
                             )}
-                            title="Idioma da Reunião"
+                            title={t('room.meeting_language')}
                         >
                             <Globe className="h-6 w-6" />
                             {selectedLang !== 'original' && (
@@ -826,7 +865,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent side="top" align="end" className="w-56 max-h-[70vh] overflow-y-auto mb-4 rounded-2xl bg-card border-border p-2 shadow-2xl custom-scrollbar">
-                        <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">Idioma de Audição</DropdownMenuLabel>
+                        <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">{t('room.listening_language')}</DropdownMenuLabel>
                         {ROOM_LANGUAGES.map((lang) => (
                             <DropdownMenuItem
                                 key={lang.code}
@@ -853,8 +892,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         className="fixed bottom-32 right-10 bg-card/80 backdrop-blur-3xl p-8 rounded-[3rem] border border-border w-64 shadow-2xl z-[50]"
                     >
                         <div className="flex justify-between text-[10px] uppercase font-black tracking-[0.2em] text-[#06b6d4] mb-4">
-                            <span>Piso</span>
-                            <span>Intérprete</span>
+                            <span>{t('room.floor')}</span>
+                            <span>{t('room.interpreter')}</span>
                         </div>
                         <input
                             type="range"
@@ -865,7 +904,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             className="w-full h-2 bg-accent/30 rounded-full appearance-none cursor-pointer accent-[#06b6d4]"
                         />
                         <div className="text-center text-[10px] text-muted-foreground mt-4 font-black tracking-widest uppercase">
-                            Mix de Áudio: {100 - volumeBalance}% / {volumeBalance}%
+                            {t('room.audio_mix')}: {100 - volumeBalance}% / {volumeBalance}%
                         </div>
                     </motion.div>
                 )}
@@ -882,7 +921,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         }}
                     >
                         <Mic className="h-5 w-5 mr-3" />
-                        MODO: INTÉRPRETE
+                        {t('room.mode_interpreter')}
                     </Button>
                 )}
 
@@ -941,7 +980,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
                         // Check if host
                         if (isHost) {
-                            if (confirm('Você é o anfitrião. Sair encerrará a reunião para todos. Continuar?')) {
+                            if (confirm(t('room.host_leave_confirm'))) {
                                 await endMeeting(roomId)
                                 window.location.href = '/dashboard'
                             }
@@ -950,7 +989,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         }
                     }}
                 >
-                    <PhoneOff className="h-5 w-5 mr-3" /> Sair
+                    <PhoneOff className="h-5 w-5 mr-3" /> {t('room.leave')}
                 </Button>
             </div>
 
