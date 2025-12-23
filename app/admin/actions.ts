@@ -96,6 +96,9 @@ export async function deleteUser(userId: string) {
         // 4. Delete profile (usually cascades, but good to be explicit or if profile has other FKs)
         await supabaseAdmin.from('profiles').delete().eq('id', userId)
 
+        // 5. Delete audit logs (where user was the actor) - CRITICAL for FK constraint
+        await supabaseAdmin.from('audit_logs').delete().eq('admin_id', userId)
+
         const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
         if (error) {
             console.error('Delete User Auth Error:', error)
