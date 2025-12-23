@@ -84,30 +84,54 @@ export async function deleteUser(userId: string) {
         const supabaseAdmin = await createAdminClient()
 
         // Manual Cascade Delete - Delete related records first
-        // 1. Delete messages (sent by user)
-        await supabaseAdmin.from('messages').delete().eq('sender_id', userId)
+        // 0. Manual cleanup of potential blockers
+        // 0.1 Delete messages (sent by user)
+        const { error: msgError } = await supabaseAdmin.from('messages').delete().eq('sender_id', userId)
+        if (msgError) console.error('Error deleting messages:', msgError)
 
-        // 1.1 Delete meeting participants records
-        await supabaseAdmin.from('meeting_participants').delete().eq('user_id', userId)
+        // 0.2 Delete ALL meeting participants where user is involved
+        const { error: partError } = await supabaseAdmin.from('meeting_participants').delete().eq('user_id', userId)
+        if (partError) console.error('Error deleting user participation:', partError)
+
+        // 0.3 CRITICAL: Delete participants from meetings HOSTED by this user
+        // If we don't do this, we can't delete the meetings, which means we can't delete the user.
+        const { data: userMeetings } = await supabaseAdmin.from('meetings').select('id').eq('host_id', userId)
+        if (userMeetings && userMeetings.length > 0) {
+            const meetingIds = userMeetings.map(m => m.id)
+            const { error: hostPartError } = await supabaseAdmin
+                .from('meeting_participants')
+                .delete()
+                .in('meeting_id', meetingIds)
+
+            if (hostPartError) console.error('Error cleaning up hosted meeting participants:', hostPartError)
+        }
 
         // 2. Delete meetings where user is host
-        // Note: This might cascade to meeting_participants, but explicit delete above is safer
-        await supabaseAdmin.from('meetings').delete().eq('host_id', userId)
+        const { error: meetingError } = await supabaseAdmin.from('meetings').delete().eq('host_id', userId)
+        if (meetingError) console.error('Error deleting meetings:', meetingError)
 
         // 3. Delete announcements (created by user)
-        await supabaseAdmin.from('announcements').delete().eq('created_by', userId)
+        const { error: annError } = await supabaseAdmin.from('announcements').delete().eq('created_by', userId)
+        if (annError) console.error('Error deleting announcements:', annError)
 
-        // 4. Delete profile (usually cascades, but good to be explicit or if profile has other FKs)
-        await supabaseAdmin.from('profiles').delete().eq('id', userId)
+        // 4. Delete profile (usually cascades, but good to be explicit)
+        const { error: profileError } = await supabaseAdmin.from('profiles').delete().eq('id', userId)
+        if (profileError) console.error('Error deleting profile:', profileError)
 
-        // 5. Delete audit logs (where user was the actor) - CRITICAL for FK constraint
-        await supabaseAdmin.from('audit_logs').delete().eq('admin_id', userId)
+        // 5. Delete audit logs (where user was the actor)
+        const { error: auditError } = await supabaseAdmin.from('audit_logs').delete().eq('admin_id', userId)
+        if (auditError) console.error('Error deleting audit logs:', auditError)
 
+        // 6. Finally delete from Auth
         const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
+
         if (error) {
             console.error('Delete User Auth Error:', error)
-            // Return specific error message to help diagnostics
-            return { success: false, error: `Erro na autenticação: ${error.message}` }
+            // Diagnostic message
+            return {
+                success: false,
+                error: `Erro Auth: ${error.message} (Verifique logs para detalhes de cascata)`
+            }
         }
 
         await logAdminAction({
