@@ -102,6 +102,145 @@ export function useWebRTC(
         return () => clearInterval(interval)
     }, [syncToState])
 
+    const createPeer = (targetUserId: string, initiator: boolean, stream: MediaStream | null, targetRole: string, targetName: string = 'Participante') => {
+        if (peersRef.current.get(targetUserId)) return peersRef.current.get(targetUserId)!.peer
+        const peer = new SimplePeer({
+            initiator,
+            trickle: true,
+            stream: stream || undefined,
+            config: { iceServers: iceServersRef.current },
+            sdpTransform: optimizeSdp // Apply Music Mode SDP Hack
+        })
+        peer.on('signal', (signal) => {
+            channelRef.current?.send({
+                type: 'broadcast',
+                event: 'signal',
+                payload: { target: targetUserId, sender: userId, signal, role: userRole, name: userName }
+            })
+        })
+        peer.on('connect', () => { updatePeerData(targetUserId, { connectionState: 'connected' }) })
+        peer.on('stream', (remoteStream) => { updatePeerData(targetUserId, { stream: remoteStream, connectionState: 'connected' }) })
+        peer.on('track', (track, stream) => {
+            if (track.kind === 'video') {
+                const videoTracks = stream.getVideoTracks()
+                if (videoTracks.length > 1 && track.id === videoTracks[videoTracks.length - 1].id) {
+                    const presentationId = `${targetUserId}-presentation`
+                    peersRef.current.set(presentationId, { peer, stream: new MediaStream([track]), userId: presentationId, role: 'presentation', name: `Apresentação`, isPresentation: true, parentUserId: targetUserId, connectionState: 'connected' })
+                    syncToState()
+                }
+            }
+        })
+        peer.on('close', () => {
+            const p = peersRef.current.get(targetUserId)
+            if (p) { p.peer.destroy(); peersRef.current.delete(targetUserId); peersRef.current.delete(`${targetUserId}-presentation`); syncToState() }
+        })
+        peersRef.current.set(targetUserId, { peer, userId: targetUserId, role: targetRole, name: targetName, connectionState: 'connecting', lastSignalTime: Date.now() })
+        syncToState()
+        return peer
+    }
+
+    const updateMetadata = (patch: any) => {
+        metadataRef.current = { ...metadataRef.current, ...patch }
+        if (channelRef.current && isJoined) {
+            channelRef.current.track(metadataRef.current)
+        }
+    }
+
+    const joinChannel = (stream: MediaStream | null) => {
+        if (channelRef.current) return
+        const newChannel = supabase.channel(`room:${roomId}`, { config: { presence: { key: userId } } })
+        channelRef.current = newChannel
+        setChannelState(newChannel)
+        newChannel
+            .on('broadcast', { event: 'signal' }, (event) => {
+                const { sender, signal, target, role: r, name: n } = event.payload
+                if (target !== userId) return
+                const existing = peersRef.current.get(sender)
+                if (existing) { existing.lastSignalTime = Date.now(); existing.peer.signal(signal) }
+                else if (signal.type === 'offer') {
+                    const newPeer = createPeer(sender, false, stream, r || 'participant', n || 'Participante')
+                    newPeer?.signal(signal)
+                }
+            })
+            .on('broadcast', { event: 'share-started' }, (event) => { setSharingUserId(event.payload.sender) })
+            .on('broadcast', { event: 'share-ended' }, (event) => {
+                const { sender } = event.payload
+                peersRef.current.delete(`${sender}-presentation`)
+                const actualPeer = peersRef.current.get(sender)
+                if (actualPeer && actualPeer.stream) {
+                    const vTracks = actualPeer.stream.getVideoTracks()
+                    if (vTracks.length > 1) {
+                        const newStream = new MediaStream([vTracks[0]])
+                        actualPeer.stream.getAudioTracks().forEach(t => newStream.addTrack(t))
+                        actualPeer.stream = newStream
+                    }
+                }
+                setSharingUserId(null); syncToState()
+            })
+            .on('broadcast', { event: 'host-promoted' }, (event) => {
+                setHostId(event.payload.newHostId)
+            })
+            .on('broadcast', { event: 'reaction' }, (event) => {
+                const { emoji, sender } = event.payload
+                const id = Math.random().toString(36).substr(2, 9)
+                setReactions(prev => [...prev, { id, emoji, userId: sender }])
+                setTimeout(() => setReactions(prev => prev.filter(r => r.id !== id)), 5000)
+            })
+            // New Admin Actions Listener
+            .on('broadcast', { event: 'admin-action' }, async (event) => {
+                const { action, targetId, payload } = event.payload
+                if (targetId === userId) {
+                    if (action === 'set-role') {
+                        updateMetadata({ role: payload.role })
+                        if (payload.role !== 'interpreter') {
+                            updateMetadata({ language: 'floor' })
+                        }
+                    }
+                    else if (action === 'set-allowed-languages') {
+                        window.dispatchEvent(new CustomEvent('admin-update-languages', { detail: payload.languages }))
+                    }
+                    else if (action === 'kick') {
+                        alert('Você foi removido da reunião pelo administrador.')
+                        window.location.href = '/dashboard'
+                    }
+                }
+            })
+            .on('presence', { event: 'sync' }, () => {
+                const state = newChannel.presenceState(); const users = Object.keys(state); setUserCount(users.length)
+                let changed = false
+                peersRef.current.forEach((p, id) => {
+                    if (id !== userId && !id.endsWith('-presentation') && !users.includes(id)) { p.peer.destroy(); peersRef.current.delete(id); peersRef.current.delete(`${id}-presentation`); changed = true }
+                })
+                users.forEach(remoteId => {
+                    const remoteData = (state[remoteId] as any[])?.[0]
+                    if (remoteId !== userId && !peersRef.current.has(remoteId)) {
+                        createPeer(remoteId, userId > remoteId, stream, remoteData?.role || 'participant', remoteData?.name || 'Participante')
+                        changed = true
+                    } else if (remoteId !== userId && peersRef.current.has(remoteId)) {
+                        const p = peersRef.current.get(remoteId)!
+                        let peerChanged = false
+                        if (remoteData?.name && p.name !== remoteData.name) { p.name = remoteData.name; peerChanged = true }
+                        if (p.micOn !== remoteData?.micOn) { p.micOn = remoteData?.micOn; peerChanged = true }
+                        if (p.cameraOn !== remoteData?.cameraOn) { p.cameraOn = remoteData?.cameraOn; peerChanged = true }
+                        if (p.handRaised !== remoteData?.handRaised) { p.handRaised = remoteData?.handRaised; peerChanged = true }
+                        if (p.language !== remoteData?.language) { p.language = remoteData?.language; peerChanged = true }
+                        if (p.role !== remoteData?.role) { p.role = remoteData?.role; peerChanged = true }
+                        if (p.isHost !== remoteData?.isHost) { p.isHost = remoteData?.isHost; peerChanged = true }
+                        if (peerChanged) changed = true
+                    }
+                })
+                if (changed) syncToState()
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    // Include host status in initial track if known
+                    const isHost = hostId === userId || metadataRef.current.isHost
+                    metadataRef.current = { ...metadataRef.current, isHost }
+                    await newChannel.track(metadataRef.current)
+                }
+            })
+    }
+
     useEffect(() => {
         let mounted = true
         let activeStream: MediaStream | null = null
@@ -156,143 +295,6 @@ export function useWebRTC(
         }
     }, [roomId, userId, isJoined])
 
-    const createPeer = (targetUserId: string, initiator: boolean, stream: MediaStream | null, targetRole: string, targetName: string = 'Participante') => {
-        if (peersRef.current.get(targetUserId)) return peersRef.current.get(targetUserId)!.peer
-        const peer = new SimplePeer({
-            initiator,
-            trickle: true,
-            stream: stream || undefined,
-            config: { iceServers: iceServersRef.current },
-            sdpTransform: optimizeSdp // Apply Music Mode SDP Hack
-        })
-        peer.on('signal', (signal) => {
-            channelRef.current?.send({
-                type: 'broadcast',
-                event: 'signal',
-                payload: { target: targetUserId, sender: userId, signal, role: userRole, name: userName }
-            })
-        })
-        peer.on('connect', () => { updatePeerData(targetUserId, { connectionState: 'connected' }) })
-        peer.on('stream', (remoteStream) => { updatePeerData(targetUserId, { stream: remoteStream, connectionState: 'connected' }) })
-        peer.on('track', (track, stream) => {
-            if (track.kind === 'video') {
-                const videoTracks = stream.getVideoTracks()
-                if (videoTracks.length > 1 && track.id === videoTracks[videoTracks.length - 1].id) {
-                    const presentationId = `${targetUserId}-presentation`
-                    peersRef.current.set(presentationId, { peer, stream: new MediaStream([track]), userId: presentationId, role: 'presentation', name: `Apresentação`, isPresentation: true, parentUserId: targetUserId, connectionState: 'connected' })
-                    syncToState()
-                }
-            }
-        })
-        peer.on('close', () => {
-            const p = peersRef.current.get(targetUserId)
-            if (p) { p.peer.destroy(); peersRef.current.delete(targetUserId); peersRef.current.delete(`${targetUserId}-presentation`); syncToState() }
-        })
-        peersRef.current.set(targetUserId, { peer, userId: targetUserId, role: targetRole, name: targetName, connectionState: 'connecting', lastSignalTime: Date.now() })
-        syncToState()
-        return peer
-    }
-
-    const joinChannel = (stream: MediaStream | null) => {
-        if (channelRef.current) return
-        const newChannel = supabase.channel(`room:${roomId}`, { config: { presence: { key: userId } } })
-        channelRef.current = newChannel
-        setChannelState(newChannel)
-        newChannel
-            .on('broadcast', { event: 'signal' }, (event) => {
-                const { sender, signal, target, role: r, name: n } = event.payload
-                if (target !== userId) return
-                const existing = peersRef.current.get(sender)
-                if (existing) { existing.lastSignalTime = Date.now(); existing.peer.signal(signal) }
-                else if (signal.type === 'offer') {
-                    const newPeer = createPeer(sender, false, stream, r || 'participant', n || 'Participante')
-                    newPeer?.signal(signal)
-                }
-            })
-            .on('broadcast', { event: 'share-started' }, (event) => { setSharingUserId(event.payload.sender) })
-            .on('broadcast', { event: 'share-ended' }, (event) => {
-                const { sender } = event.payload
-                peersRef.current.delete(`${sender}-presentation`)
-                const actualPeer = peersRef.current.get(sender)
-                if (actualPeer && actualPeer.stream) {
-                    const vTracks = actualPeer.stream.getVideoTracks()
-                    if (vTracks.length > 1) {
-                        const newStream = new MediaStream([vTracks[0]])
-                        actualPeer.stream.getAudioTracks().forEach(t => newStream.addTrack(t))
-                        actualPeer.stream = newStream
-                    }
-                }
-                setSharingUserId(null); syncToState()
-            })
-            .on('broadcast', { event: 'host-promoted' }, (event) => {
-                setHostId(event.payload.newHostId)
-            })
-            .on('broadcast', { event: 'reaction' }, (event) => {
-                const { emoji, sender } = event.payload
-                const id = Math.random().toString(36).substr(2, 9)
-                setReactions(prev => [...prev, { id, emoji, userId: sender }])
-                setTimeout(() => setReactions(prev => prev.filter(r => r.id !== id)), 5000)
-            })
-            // New Admin Actions Listener
-            .on('broadcast', { event: 'admin-action' }, async (event) => {
-                const { action, targetId, payload } = event.payload
-
-                // If I am the target
-                if (targetId === userId) {
-                    if (action === 'set-role') {
-                        // Update my role locally and in metadata
-                        updateMetadata({ role: payload.role })
-                        // If promoted to interpreter, we might want to auto-open setup? handled in RoomPage via effect?
-                        // If demoted, clear language?
-                        if (payload.role !== 'interpreter') {
-                            updateMetadata({ language: 'floor' })
-                        }
-                    }
-                    else if (action === 'set-allowed-languages') {
-                        window.dispatchEvent(new CustomEvent('admin-update-languages', { detail: payload.languages }))
-                    }
-                    else if (action === 'kick') {
-                        alert('Você foi removido da reunião pelo administrador.')
-                        window.location.href = '/dashboard'
-                    }
-                }
-            })
-            .on('presence', { event: 'sync' }, () => {
-                const state = newChannel.presenceState(); const users = Object.keys(state); setUserCount(users.length)
-                let changed = false
-                peersRef.current.forEach((p, id) => {
-                    if (id !== userId && !id.endsWith('-presentation') && !users.includes(id)) { p.peer.destroy(); peersRef.current.delete(id); peersRef.current.delete(`${id}-presentation`); changed = true }
-                })
-                users.forEach(remoteId => {
-                    const remoteData = (state[remoteId] as any[])?.[0]
-                    if (remoteId !== userId && !peersRef.current.has(remoteId)) {
-                        createPeer(remoteId, userId > remoteId, stream, remoteData?.role || 'participant', remoteData?.name || 'Participante')
-                        changed = true
-                    } else if (remoteId !== userId && peersRef.current.has(remoteId)) {
-                        const p = peersRef.current.get(remoteId)!
-                        let peerChanged = false
-                        if (remoteData?.name && p.name !== remoteData.name) { p.name = remoteData.name; peerChanged = true }
-                        if (p.micOn !== remoteData?.micOn) { p.micOn = remoteData?.micOn; peerChanged = true }
-                        if (p.cameraOn !== remoteData?.cameraOn) { p.cameraOn = remoteData?.cameraOn; peerChanged = true }
-                        if (p.handRaised !== remoteData?.handRaised) { p.handRaised = remoteData?.handRaised; peerChanged = true }
-                        if (p.language !== remoteData?.language) { p.language = remoteData?.language; peerChanged = true }
-                        if (p.role !== remoteData?.role) { p.role = remoteData?.role; peerChanged = true }
-                        if (p.isHost !== remoteData?.isHost) { p.isHost = remoteData?.isHost; peerChanged = true }
-                        if (peerChanged) changed = true
-                    }
-                })
-                if (changed) syncToState()
-            })
-            .subscribe(async (status) => {
-                if (status === 'SUBSCRIBED') {
-                    // Include host status in initial track if known
-                    const isHost = hostId === userId || metadataRef.current.isHost
-                    metadataRef.current = { ...metadataRef.current, isHost }
-                    await newChannel.track(metadataRef.current)
-                }
-            })
-    }
-
     const promoteToHost = async (newHostId: string) => {
         if (hostId !== userId) return
         try {
@@ -315,12 +317,7 @@ export function useWebRTC(
         updateMetadata({ handRaised: newState })
     }
 
-    const updateMetadata = (patch: any) => {
-        metadataRef.current = { ...metadataRef.current, ...patch }
-        if (channelRef.current && isJoined) {
-            channelRef.current.track(metadataRef.current)
-        }
-    }
+
 
     // React to identity changes (e.g. Admin name loading late)
     useEffect(() => {

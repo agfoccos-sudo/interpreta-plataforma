@@ -54,6 +54,36 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     const [currentRole, setCurrentRole] = useState<string>('participant')
     const [isLoaded, setIsLoaded] = useState(false)
 
+    // State declarations moved for hoisting
+    const [micOn, setMicOn] = useState(true)
+    const [cameraOn, setCameraOn] = useState(true)
+    const [selectedLang, setSelectedLang] = useState('original')
+    const [volumeBalance, setVolumeBalance] = useState(20)
+    const [myBroadcastLang, setMyBroadcastLang] = useState('floor')
+    const [showLangMenu, setShowLangMenu] = useState(false)
+    const [attentionToast, setAttentionToast] = useState<{ id: string, name: string } | null>(null)
+    const [activeSidebar, setActiveSidebar] = useState<'chat' | 'participants' | null>(null)
+    const [isSharing, setIsSharing] = useState(false)
+    const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([])
+    const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([])
+    const [activeLanguages, setActiveLanguages] = useState<string[]>([]) // Dynamic languages from DB
+    const [assignedLanguages, setAssignedLanguages] = useState<string[]>([]) // For restricted interpreters
+
+    // Layout and Join States
+    const [isJoined, setIsJoined] = useState(false)
+    const [lobbyConfig, setLobbyConfig] = useState<{
+        micOn: boolean,
+        cameraOn: boolean,
+        audioDeviceId: string,
+        videoDeviceId: string
+    } | null>(null)
+
+    const [viewMode, setViewMode] = useState<'gallery' | 'speaker'>('gallery')
+    const [activeSpeakerId, setActiveSpeakerId] = useState<string | null>(null)
+    const [pinnedSpeakerId, setPinnedSpeakerId] = useState<string | null>(null)
+    const [currentPage, setCurrentPage] = useState(0)
+    const itemsPerPage = 49
+
     useEffect(() => {
         const initUser = async () => {
             const supabase = createClient()
@@ -174,33 +204,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         initUser()
     }, [roomId])
 
-    const [micOn, setMicOn] = useState(true)
-    const [cameraOn, setCameraOn] = useState(true)
-    const [selectedLang, setSelectedLang] = useState('original')
-    const [volumeBalance, setVolumeBalance] = useState(20)
-    const [myBroadcastLang, setMyBroadcastLang] = useState('floor')
-    const [showLangMenu, setShowLangMenu] = useState(false)
-    const [attentionToast, setAttentionToast] = useState<{ id: string, name: string } | null>(null)
-    const [activeSidebar, setActiveSidebar] = useState<'chat' | 'participants' | null>(null)
-    const [isSharing, setIsSharing] = useState(false)
-    const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([])
-    const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([])
-    const [activeLanguages, setActiveLanguages] = useState<string[]>([]) // Dynamic languages from DB
-    const [assignedLanguages, setAssignedLanguages] = useState<string[]>([]) // For restricted interpreters
-
-    // Layout and Join States
-    const [isJoined, setIsJoined] = useState(false)
-    const [lobbyConfig, setLobbyConfig] = useState<{
-        micOn: boolean,
-        cameraOn: boolean,
-        audioDeviceId: string,
-        videoDeviceId: string
-    } | null>(null)
-
-    const [viewMode, setViewMode] = useState<'gallery' | 'speaker'>('gallery')
-    const [activeSpeakerId, setActiveSpeakerId] = useState<string | null>(null)
-    const [pinnedSpeakerId, setPinnedSpeakerId] = useState<string | null>(null)
-    const [currentPage, setCurrentPage] = useState(0)
+    // State declarations previously here were moved up to fix 'used before declaration' errors
     const itemsPerPage = 49
 
     const {
