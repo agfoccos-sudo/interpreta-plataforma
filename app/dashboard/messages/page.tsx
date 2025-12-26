@@ -5,20 +5,28 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Megaphone, Bell, Zap, Wrench, Info, Star, Calendar } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
+import { useLanguage } from '@/components/providers/language-provider'
+import { enUS, es, ptBR } from 'date-fns/locale'
 
-const getIconForTitle = (title: string) => {
-    const t = title.toLowerCase()
-    if (t.includes('🚀') || t.includes('update') || t.includes('atualização') || t.includes('novidade')) return <Zap className="h-5 w-5 text-amber-500" />
-    if (t.includes('🔧') || t.includes('manutenção') || t.includes('correção')) return <Wrench className="h-5 w-5 text-blue-500" />
-    if (t.includes('⚠️') || t.includes('importante') || t.includes('aviso') || t.includes('alerta')) return <Star className="h-5 w-5 text-red-500" />
-    return <Info className="h-5 w-5 text-cyan-500" />
+const locales: Record<string, any> = {
+    en: enUS,
+    pt: ptBR,
+    es: es
 }
 
 export default function MessagesPage() {
+    const { t, language } = useLanguage()
     const [messages, setMessages] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+
+    const getIconForTitle = (title: string) => {
+        const titleLower = title.toLowerCase()
+        if (titleLower.includes('🚀') || titleLower.includes('update') || titleLower.includes('atualização') || titleLower.includes('novedad')) return <Zap className="h-5 w-5 text-amber-500" />
+        if (titleLower.includes('🔧') || titleLower.includes('manutenção') || titleLower.includes('correção') || titleLower.includes('mantenimiento')) return <Wrench className="h-5 w-5 text-blue-500" />
+        if (titleLower.includes('⚠️') || titleLower.includes('importante') || titleLower.includes('aviso') || titleLower.includes('alerta')) return <Star className="h-5 w-5 text-red-500" />
+        return <Info className="h-5 w-5 text-cyan-500" />
+    }
 
     useEffect(() => {
         const loadMessages = async () => {
@@ -45,7 +53,7 @@ export default function MessagesPage() {
     if (loading) return (
         <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            <p className="text-muted-foreground animate-pulse">Carregando quadro de avisos...</p>
+            <p className="text-muted-foreground animate-pulse">{t('messages.loading')}</p>
         </div>
     )
 
@@ -58,9 +66,9 @@ export default function MessagesPage() {
                         <Megaphone className="h-10 w-10 text-white fill-white/20" />
                     </div>
                     <div>
-                        <h1 className="text-4xl font-black tracking-tighter text-white mb-2">Quadro de Avisos</h1>
+                        <h1 className="text-4xl font-black tracking-tighter text-white mb-2">{t('messages.title')}</h1>
                         <p className="text-blue-100/80 text-lg font-medium max-w-xl">
-                            Fique por dentro das últimas melhorias, novidades e atualizações oficiais da plataforma.
+                            {t('messages.subtitle')}
                         </p>
                     </div>
                 </div>
@@ -75,8 +83,8 @@ export default function MessagesPage() {
                         <div className="bg-accent/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                             <Bell className="h-10 w-10 text-muted-foreground opacity-40" />
                         </div>
-                        <h3 className="text-xl font-bold text-foreground mb-2">Tudo tranquilo por aqui</h3>
-                        <p className="text-muted-foreground font-medium max-w-sm mx-auto">Nenhum comunicado recente foi postado. Aproveite para explorar outras áreas!</p>
+                        <h3 className="text-xl font-bold text-foreground mb-2">{t('messages.empty_title')}</h3>
+                        <p className="text-muted-foreground font-medium max-w-sm mx-auto">{t('messages.empty_desc')}</p>
                     </div>
                 ) : (
                     messages.map((msg, index) => {
@@ -103,13 +111,13 @@ export default function MessagesPage() {
                                                     </CardTitle>
                                                     {isNew && (
                                                         <Badge variant="default" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-[10px] font-bold px-2 py-0.5 shadow-lg shadow-orange-500/20 animate-pulse">
-                                                            NOVO
+                                                            {t('messages.new_badge')}
                                                         </Badge>
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                                                     <Calendar className="h-3 w-3" />
-                                                    {format(new Date(msg.created_at), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                                                    {format(new Date(msg.created_at), t('messages.date_format'), { locale: locales[language] || ptBR })}
                                                 </div>
                                             </div>
                                         </div>

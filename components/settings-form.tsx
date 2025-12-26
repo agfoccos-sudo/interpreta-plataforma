@@ -1,6 +1,7 @@
 'use client'
 
 import { updateProfile, updatePassword } from '@/app/dashboard/settings/actions'
+import { useLanguage } from '@/components/providers/language-provider'
 import AvatarUpload from '@/components/avatar-upload'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -63,6 +64,8 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
         }
     }
 
+    const { t } = useLanguage()
+
     return (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-10">
             <div className="flex justify-center md:justify-start">
@@ -72,14 +75,14 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                         className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg shadow-primary/20 transition-all duration-300 font-bold"
                     >
                         <User className="w-4 h-4 mr-2" />
-                        Perfil Público
+                        {t('settings.profile_tab')}
                     </TabsTrigger>
                     <TabsTrigger
                         value="security"
                         className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg shadow-primary/20 transition-all duration-300 font-bold"
                     >
                         <Shield className="w-4 h-4 mr-2" />
-                        Segurança & Senha
+                        {t('settings.security_tab')}
                     </TabsTrigger>
                 </TabsList>
             </div>
@@ -95,10 +98,10 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                             </div>
                             <div>
                                 <CardTitle className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60">
-                                    Informações do Perfil
+                                    {t('settings.profile_title')}
                                 </CardTitle>
                                 <CardDescription className="text-slate-400 text-lg mt-1 font-medium italic">
-                                    Sua identidade digital na plataforma.
+                                    {t('settings.profile_desc')}
                                 </CardDescription>
                             </div>
                         </div>
@@ -115,12 +118,12 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                                         router.refresh()
                                     }}
                                 />
-                                <p className="text-xs text-slate-500 mt-4 uppercase tracking-[0.2em] font-black opacity-50">Avatar do Sistema</p>
+                                <p className="text-xs text-slate-500 mt-4 uppercase tracking-[0.2em] font-black opacity-50">{t('settings.avatar_label')}</p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                 <div className="group space-y-3">
-                                    <Label htmlFor="email" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-primary">Endereço de Email</Label>
+                                    <Label htmlFor="email" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-primary">{t('settings.email_label')}</Label>
                                     <div className="relative">
                                         <div className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500">@</div>
                                         <Input
@@ -132,7 +135,7 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                                     </div>
                                 </div>
                                 <div className="group space-y-3">
-                                    <Label htmlFor="fullName" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-primary">Nome Completo</Label>
+                                    <Label htmlFor="fullName" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-primary">{t('settings.fullname_label')}</Label>
                                     <div className="relative">
                                         <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-primary transition-colors" />
                                         <Input
@@ -140,12 +143,12 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                                             name="fullName"
                                             defaultValue={profile?.full_name || ''}
                                             className="bg-slate-950/50 border-slate-800/50 text-foreground h-14 rounded-2xl pl-12 focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300 font-medium"
-                                            placeholder="Ex: Carlos Oliveira"
+                                            placeholder={t('settings.fullname_placeholder')}
                                         />
                                     </div>
                                 </div>
                                 <div className="group space-y-3">
-                                    <Label htmlFor="jobTitle" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-primary">Cargo / Função</Label>
+                                    <Label htmlFor="jobTitle" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-primary">{t('settings.job_label')}</Label>
                                     <div className="relative">
                                         <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-primary transition-colors" />
                                         <Input
@@ -153,12 +156,12 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                                             name="jobTitle"
                                             defaultValue={profile?.job_title || ''}
                                             className="bg-slate-950/50 border-slate-800/50 text-foreground h-14 rounded-2xl pl-12 focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300 font-medium"
-                                            placeholder="Ex: CEO, Intérprete Sênior"
+                                            placeholder={t('settings.job_placeholder')}
                                         />
                                     </div>
                                 </div>
                                 <div className="group space-y-3">
-                                    <Label htmlFor="company" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-primary">Empresa / Instituição</Label>
+                                    <Label htmlFor="company" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-primary">{t('settings.company_label')}</Label>
                                     <div className="relative">
                                         <Building className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-primary transition-colors" />
                                         <Input
@@ -166,14 +169,14 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                                             name="company"
                                             defaultValue={profile?.company || ''}
                                             className="bg-slate-950/50 border-slate-800/50 text-foreground h-14 rounded-2xl pl-12 focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300 font-medium"
-                                            placeholder="Nome da sua organização"
+                                            placeholder={t('settings.company_placeholder')}
                                         />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="group space-y-3">
-                                <Label htmlFor="bio" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-primary">Biografia Profissional</Label>
+                                <Label htmlFor="bio" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-primary">{t('settings.bio_label')}</Label>
                                 <div className="relative">
                                     <FileText className="absolute left-4 top-5 h-4 w-4 text-slate-500 group-focus-within:text-primary transition-colors" />
                                     <Textarea
@@ -181,7 +184,7 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                                         name="bio"
                                         defaultValue={profile?.bio || ''}
                                         className="bg-slate-950/50 border-slate-800/50 text-foreground rounded-[1.5rem] pl-12 pt-4 min-h-[140px] resize-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300 leading-relaxed font-medium"
-                                        placeholder="Conte um pouco sobre sua trajetória no mundo da interpretação..."
+                                        placeholder={t('settings.bio_placeholder')}
                                     />
                                 </div>
                             </div>
@@ -192,8 +195,8 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                                 disabled={loading}
                                 className="bg-primary hover:bg-primary/90 w-full h-16 rounded-[1.5rem] font-black text-xl tracking-tight transition-all active:scale-[0.98] shadow-2xl shadow-primary/20 hover:shadow-primary/40 border-0 flex items-center justify-center gap-3"
                             >
-                                {loading ? 'Sincronizando...' : (
-                                    <>Salvar Preferências <Check className="w-5 h-5" /></>
+                                {loading ? t('settings.saving') : (
+                                    <>{t('settings.save_btn')} <Check className="w-5 h-5" /></>
                                 )}
                             </Button>
                         </CardFooter>
@@ -211,9 +214,9 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                             </div>
                             <div>
                                 <CardTitle className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60">
-                                    Segurança de Acesso
+                                    {t('settings.security_title')}
                                 </CardTitle>
-                                <CardDescription className="text-slate-400 text-lg mt-1 font-medium italic">Proteja sua conta com uma senha forte.</CardDescription>
+                                <CardDescription className="text-slate-400 text-lg mt-1 font-medium italic">{t('settings.security_desc')}</CardDescription>
                             </div>
                         </div>
                     </CardHeader>
@@ -221,7 +224,7 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                         <CardContent className="p-10 space-y-10">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                 <div className="group space-y-3">
-                                    <Label htmlFor="password" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-orange-500">Nova Credencial</Label>
+                                    <Label htmlFor="password" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-orange-500">{t('settings.password_label')}</Label>
                                     <div className="relative">
                                         <Key className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-orange-500 transition-colors" />
                                         <Input
@@ -230,12 +233,12 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                                             type="password"
                                             required
                                             className="bg-slate-950/50 border-slate-800/50 text-foreground h-14 rounded-2xl pl-12 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all duration-300"
-                                            placeholder="Mínimo 6 caracteres"
+                                            placeholder={t('settings.password_placeholder')}
                                         />
                                     </div>
                                 </div>
                                 <div className="group space-y-3">
-                                    <Label htmlFor="confirmPassword" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-orange-500">Confirmar Nova Senha</Label>
+                                    <Label htmlFor="confirmPassword" className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 ml-1 transition-colors group-focus-within:text-orange-500">{t('settings.confirm_password_label')}</Label>
                                     <div className="relative">
                                         <Key className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-orange-500 transition-colors" />
                                         <Input
@@ -244,7 +247,7 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                                             type="password"
                                             required
                                             className="bg-slate-950/50 border-slate-800/50 text-foreground h-14 rounded-2xl pl-12 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all duration-300"
-                                            placeholder="Repita a nova senha"
+                                            placeholder={t('settings.confirm_password_placeholder')}
                                         />
                                     </div>
                                 </div>
@@ -256,8 +259,8 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                                 disabled={loading}
                                 className="bg-orange-500 hover:bg-orange-600 w-full h-16 rounded-[1.5rem] font-black text-xl tracking-tight transition-all active:scale-[0.98] shadow-2xl shadow-orange-500/20 hover:shadow-orange-500/40 border-0 flex items-center justify-center gap-3 text-white"
                             >
-                                {loading ? 'Validando...' : (
-                                    <>Autenticar Mudança <Shield className="w-5 h-5" /></>
+                                {loading ? t('settings.authenticating') : (
+                                    <>{t('settings.auth_change_btn')} <Shield className="w-5 h-5" /></>
                                 )}
                             </Button>
                         </CardFooter>
@@ -270,18 +273,18 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                             <div className="p-2 bg-red-500/10 rounded-lg">
                                 <Shield className="h-6 w-6" />
                             </div>
-                            Zona Crítica
+                            {t('settings.danger_zone_title')}
                         </CardTitle>
-                        <CardDescription className="text-red-400/60 font-medium italic mt-2">Ações que removem permanentemente o seu acesso.</CardDescription>
+                        <CardDescription className="text-red-400/60 font-medium italic mt-2">{t('settings.danger_zone_desc')}</CardDescription>
                     </CardHeader>
                     <CardContent className="p-10 pt-0">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-8 bg-red-500/10 rounded-[1.5rem] border border-red-500/20 group hover:border-red-500/40 transition-all duration-500">
                             <div className="text-center md:text-left">
-                                <h4 className="font-extrabold text-red-500 text-lg uppercase tracking-tight">Encerrar Conta</h4>
-                                <p className="text-slate-400 font-medium mt-1">Isso apagará seu histórico de reuniões e arquivos.</p>
+                                <h4 className="font-extrabold text-red-500 text-lg uppercase tracking-tight">{t('settings.delete_account_title')}</h4>
+                                <p className="text-slate-400 font-medium mt-1">{t('settings.delete_account_desc')}</p>
                             </div>
                             <Button variant="destructive" disabled className="opacity-40 h-14 px-10 rounded-xl font-black uppercase tracking-widest text-sm shadow-lg shadow-red-500/20 cursor-not-allowed">
-                                Conta Blindada
+                                {t('settings.shielded_account')}
                             </Button>
                         </div>
                     </CardContent>
@@ -289,4 +292,5 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
             </TabsContent>
         </Tabs>
     )
+
 }

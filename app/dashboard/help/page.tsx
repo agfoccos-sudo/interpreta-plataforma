@@ -1,163 +1,230 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
-import { Video, Mic, Globe, MessageSquare, Monitor, FileText } from 'lucide-react'
+import { Video, Mic, Globe, MessageSquare, Monitor, HelpCircle, User, Shield, CheckCircle2, Star } from 'lucide-react'
+import { useLanguage } from '@/components/providers/language-provider'
 
 export default function HelpPage() {
+    const { t } = useLanguage()
+    const [activeTab, setActiveTab] = useState('user')
+
     return (
-        <div className="container mx-auto px-4 py-8 max-w-5xl animate-in fade-in duration-500">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Central de Ajuda</h1>
-                <p className="text-slate-500 dark:text-slate-400">Tire suas dúvidas e aprenda a usar a plataforma.</p>
+        <div className="min-h-screen pb-20 animate-in fade-in duration-700">
+            {/* Hero Header */}
+            <div className="relative overflow-hidden bg-slate-950 px-6 py-16 md:py-24 border-b border-slate-800/50">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.15),transparent_50%)]" />
+                <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+
+                <div className="max-w-5xl mx-auto relative z-10 text-center space-y-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider mb-2">
+                        <HelpCircle className="h-3.5 w-3.5" />
+                        Help & Support
+                    </div>
+                    <h1 className="text-4xl md:text-6xl font-black tracking-tight text-foreground bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400">
+                        {t('help.title')}
+                    </h1>
+                    <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto font-medium">
+                        {t('help.subtitle')}
+                    </p>
+                </div>
             </div>
 
-            <Tabs defaultValue="user" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-8 h-12 rounded-xl bg-slate-100 dark:bg-slate-800/50 p-1">
-                    <TabsTrigger value="user" className="rounded-lg font-bold">Para Usuários</TabsTrigger>
-                    <TabsTrigger value="interpreter" className="rounded-lg font-bold">Para Intérpretes</TabsTrigger>
-                </TabsList>
-
-                {/* User Guide */}
-                <TabsContent value="user">
-                    <div className="grid gap-6 md:grid-cols-2">
-                        {/* Getting Started */}
-                        <Card className="md:col-span-2 bg-white dark:bg-card border-none shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Video className="h-5 w-5 text-blue-500" />
-                                    Como participar de reuniões
-                                </CardTitle>
-                                <CardDescription>Guia básico para entrar e interagir</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Accordion type="single" collapsible className="w-full">
-                                    <AccordionItem value="item-1">
-                                        <AccordionTrigger>Como entro em uma reunião?</AccordionTrigger>
-                                        <AccordionContent>
-                                            Você pode entrar clicando no link compartilhado pelo organizador ou inserindo o ID da reunião na página inicial após fazer login.
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                    <AccordionItem value="item-2">
-                                        <AccordionTrigger>Como ouço a tradução?</AccordionTrigger>
-                                        <AccordionContent>
-                                            Dentro da sala, clique no ícone de "Mundo" (🌐) ou no menu de idiomas na barra inferior. Selecione o idioma que deseja ouvir. O áudio original será baixado automaticamente e você ouvirá o intérprete.
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                    <AccordionItem value="item-3">
-                                        <AccordionTrigger>Posso falar durante a tradução?</AccordionTrigger>
-                                        <AccordionContent>
-                                            Sim! Você pode abrir seu microfone a qualquer momento. Se houver tradução simultânea, o intérprete ouvirá você e traduzirá para os outros participantes.
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                </Accordion>
-                            </CardContent>
-                        </Card>
-
-                        {/* Features */}
-                        <Card className="bg-white dark:bg-card border-none shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <MessageSquare className="h-5 w-5 text-purple-500" />
-                                    Chat e Reações
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Accordion type="single" collapsible className="w-full">
-                                    <AccordionItem value="item-1">
-                                        <AccordionTrigger>O chat é traduzido?</AccordionTrigger>
-                                        <AccordionContent>
-                                            Atualmente o chat é universal. Recomendamos escrever no idioma comum ou usar ferramentas de tradução externa por enquanto. (Tradução automática de chat em breve!)
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                    <AccordionItem value="item-2">
-                                        <AccordionTrigger>Como levantar a mão?</AccordionTrigger>
-                                        <AccordionContent>
-                                            Clique no ícone de "Mão" (✋) na barra de controles. Isso notificará o anfitrião e os intérpretes que você deseja falar.
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                </Accordion>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="bg-white dark:bg-card border-none shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Monitor className="h-5 w-5 text-green-500" />
-                                    Compartilhamento
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Accordion type="single" collapsible className="w-full">
-                                    <AccordionItem value="item-1">
-                                        <AccordionTrigger>Como compartilhar tela?</AccordionTrigger>
-                                        <AccordionContent>
-                                            Clique no botão "Compartilhar Tela" na barra inferior. Você pode escolher compartilhar a tela inteira, uma janela ou uma guia do navegador. Se compartilhar uma guia com vídeo, lembre-se de marcar "Compartilhar áudio da guia".
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                </Accordion>
-                            </CardContent>
-                        </Card>
+            <div className="max-w-5xl mx-auto px-6 -mt-8">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-12">
+                    <div className="flex justify-center">
+                        <TabsList className="bg-slate-900/50 p-1.5 rounded-2xl border border-slate-800/50 backdrop-blur-xl shadow-2xl">
+                            <TabsTrigger
+                                value="user"
+                                className="rounded-xl px-8 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg shadow-primary/20 transition-all duration-300 font-bold flex items-center gap-2"
+                            >
+                                <User className="h-4 w-4" />
+                                {t('help.user_tab')}
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="interpreter"
+                                className="rounded-xl px-8 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg shadow-primary/20 transition-all duration-300 font-bold flex items-center gap-2"
+                            >
+                                <Shield className="h-4 w-4" />
+                                {t('help.interpreter_tab')}
+                            </TabsTrigger>
+                        </TabsList>
                     </div>
-                </TabsContent>
 
-                {/* Interpreter Guide */}
-                <TabsContent value="interpreter">
-                    <Card className="bg-white dark:bg-card border-none shadow-sm mb-6">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-amber-500">
-                                <Globe className="h-5 w-5" />
-                                Console do Intérprete
-                            </CardTitle>
-                            <CardDescription>Domine sua ferramenta de trabalho</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="prose dark:prose-invert max-w-none mb-6">
-                                <p>
-                                    Como intérprete, você tem acesso a um painel exclusivo (Console). Ele aparece automaticamente quando você entra em uma sala onde foi designado como intérprete.
-                                </p>
-                            </div>
-                            <Accordion type="single" collapsible className="w-full">
-                                <AccordionItem value="item-1">
-                                    <AccordionTrigger>Não vejo o console. O que fazer?</AccordionTrigger>
-                                    <AccordionContent>
-                                        1. Verifique se você está logado com a conta correta.<br />
-                                        2. Confirme se o anfitrião adicionou seu email na lista de intérpretes da reunião.<br />
-                                        3. Tente recarregar a página. Se o problema persistir, peça ao admin para verificar seu cargo.
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="item-2">
-                                    <AccordionTrigger>Como mudar o canal de saída?</AccordionTrigger>
-                                    <AccordionContent>
-                                        No seu console, use os botões de idioma (ex: PT, EN) para alternar para qual canal sua voz está sendo enviada. O botão ativo ficará iluminado.
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="item-3">
-                                    <AccordionTrigger>O que é o botão "Handover" (🔄)?</AccordionTrigger>
-                                    <AccordionContent>
-                                        Use este botão para sinalizar ao seu parceiro de cabine (outro intérprete do mesmo idioma) que você deseja trocar de turno. Ele enviará um emoji visual na tela.
-                                    </AccordionContent>
-                                </AccordionItem>
-                            </Accordion>
-                        </CardContent>
-                    </Card>
+                    {/* User Guide */}
+                    <TabsContent value="user" className="space-y-10 animate-in slide-in-from-bottom-6 duration-700">
+                        <div className="grid gap-8 md:grid-cols-2">
+                            {/* Getting Started */}
+                            <Card className="md:col-span-2 bg-slate-900/40 border-slate-800/50 backdrop-blur-xl shadow-2xl rounded-[2.5rem] overflow-hidden group border-t-primary/20">
+                                <CardHeader className="bg-slate-950/20 p-8 border-b border-slate-800/40">
+                                    <div className="flex items-center gap-5">
+                                        <div className="p-3 bg-blue-500/10 rounded-2xl ring-1 ring-blue-500/20">
+                                            <Video className="h-6 w-6 text-blue-500" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-2xl font-black leading-none">{t('help.categories.meetings')}</CardTitle>
+                                            <CardDescription className="text-slate-400 mt-2 font-medium">{t('help.categories.meetings_desc')}</CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-8">
+                                    <Accordion type="single" collapsible className="w-full">
+                                        <AccordionItem value="item-1" className="border-slate-800/50">
+                                            <AccordionTrigger className="text-lg font-bold hover:no-underline hover:text-primary transition-colors py-5">
+                                                {t('help.questions.join_q')}
+                                            </AccordionTrigger>
+                                            <AccordionContent className="text-slate-400 text-base leading-relaxed pb-6">
+                                                {t('help.questions.join_a')}
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                        <AccordionItem value="item-2" className="border-slate-800/50">
+                                            <AccordionTrigger className="text-lg font-bold hover:no-underline hover:text-primary transition-colors py-5">
+                                                {t('help.questions.audio_q')}
+                                            </AccordionTrigger>
+                                            <AccordionContent className="text-slate-400 text-base leading-relaxed pb-6">
+                                                {t('help.questions.audio_a')}
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                        <AccordionItem value="item-3" className="border-none">
+                                            <AccordionTrigger className="text-lg font-bold hover:no-underline hover:text-primary transition-colors py-5">
+                                                {t('help.questions.speech_q')}
+                                            </AccordionTrigger>
+                                            <AccordionContent className="text-slate-400 text-base leading-relaxed pb-6">
+                                                {t('help.questions.speech_a')}
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+                                </CardContent>
+                            </Card>
 
-                    <div className="bg-slate-900 rounded-2xl p-6 text-white">
-                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <Mic className="h-5 w-5 text-red-500" />
-                            Boas Práticas
-                        </h3>
-                        <ul className="list-disc list-inside space-y-2 text-slate-300">
-                            <li>Use sempre fones de ouvido com microfone de boa qualidade (headset USB recomendado).</li>
-                            <li>Mantenha-se no "Mudo" quando não estiver interpretando ativamente.</li>
-                            <li>Tenha uma conexão de internet cabeada (Ethernet) para maior estabilidade.</li>
-                            <li>Feche abas desnecessárias do navegador para economizar processamento.</li>
-                        </ul>
-                    </div>
-                </TabsContent>
-            </Tabs>
+                            {/* Features */}
+                            <Card className="bg-slate-900/40 border-slate-800/50 backdrop-blur-xl shadow-2xl rounded-[2.5rem] overflow-hidden group border-t-purple-500/20">
+                                <CardHeader className="p-8 pb-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-2.5 bg-purple-500/10 rounded-xl ring-1 ring-purple-500/20">
+                                            <MessageSquare className="h-5 w-5 text-purple-500" />
+                                        </div>
+                                        <CardTitle className="text-xl font-bold">{t('help.categories.chat')}</CardTitle>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="px-8 pb-8">
+                                    <Accordion type="single" collapsible className="w-full">
+                                        <AccordionItem value="item-1" className="border-slate-800/50">
+                                            <AccordionTrigger className="font-bold hover:no-underline hover:text-purple-400 py-4">
+                                                {t('help.questions.chat_q')}
+                                            </AccordionTrigger>
+                                            <AccordionContent className="text-slate-400 pb-4">
+                                                {t('help.questions.chat_a')}
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                        <AccordionItem value="item-2" className="border-none">
+                                            <AccordionTrigger className="font-bold hover:no-underline hover:text-purple-400 py-4">
+                                                {t('help.questions.hand_q')}
+                                            </AccordionTrigger>
+                                            <AccordionContent className="text-slate-400 pb-4">
+                                                {t('help.questions.hand_a')}
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-slate-900/40 border-slate-800/50 backdrop-blur-xl shadow-2xl rounded-[2.5rem] overflow-hidden group border-t-emerald-500/20">
+                                <CardHeader className="p-8 pb-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-2.5 bg-emerald-500/10 rounded-xl ring-1 ring-emerald-500/20">
+                                            <Monitor className="h-5 w-5 text-emerald-500" />
+                                        </div>
+                                        <CardTitle className="text-xl font-bold">{t('help.categories.sharing')}</CardTitle>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="px-8 pb-8">
+                                    <Accordion type="single" collapsible className="w-full">
+                                        <AccordionItem value="item-1" className="border-none">
+                                            <AccordionTrigger className="font-bold hover:no-underline hover:text-emerald-400 py-4">
+                                                {t('help.questions.share_q')}
+                                            </AccordionTrigger>
+                                            <AccordionContent className="text-slate-400 pb-4">
+                                                {t('help.questions.share_a')}
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+
+                    {/* Interpreter Guide */}
+                    <TabsContent value="interpreter" className="space-y-10 animate-in slide-in-from-bottom-6 duration-700">
+                        <Card className="bg-slate-900/40 border-slate-800/50 backdrop-blur-xl shadow-2xl rounded-[2.5rem] overflow-hidden border-t-amber-500/20">
+                            <CardHeader className="bg-slate-950/20 p-10 border-b border-slate-800/40">
+                                <div className="flex items-center gap-6">
+                                    <div className="p-4 bg-amber-500/10 rounded-2xl ring-1 ring-amber-500/20">
+                                        <Globe className="h-8 w-8 text-amber-500 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-3xl font-black tracking-tight">{t('help.categories.console')}</CardTitle>
+                                        <CardDescription className="text-slate-400 text-lg mt-2 italic">{t('help.categories.console_desc')}</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-10">
+                                <div className="prose prose-invert max-w-none mb-10 text-slate-400 text-lg leading-relaxed">
+                                    <p>{t('help.interpreter_desc')}</p>
+                                </div>
+                                <Accordion type="single" collapsible className="w-full">
+                                    <AccordionItem value="item-1" className="border-slate-800/50">
+                                        <AccordionTrigger className="text-lg font-bold hover:text-amber-500 py-6">
+                                            {t('help.questions.no_console_q')}
+                                        </AccordionTrigger>
+                                        <AccordionContent className="text-slate-400 text-base leading-relaxed pb-6 whitespace-pre-line">
+                                            {t('help.questions.no_console_a')}
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                    <AccordionItem value="item-2" className="border-slate-800/50">
+                                        <AccordionTrigger className="text-lg font-bold hover:text-amber-500 py-6">
+                                            {t('help.questions.channel_q')}
+                                        </AccordionTrigger>
+                                        <AccordionContent className="text-slate-400 text-base leading-relaxed pb-6">
+                                            {t('help.questions.channel_a')}
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                    <AccordionItem value="item-3" className="border-none">
+                                        <AccordionTrigger className="text-lg font-bold hover:text-amber-500 py-6">
+                                            {t('help.questions.handover_q')}
+                                        </AccordionTrigger>
+                                        <AccordionContent className="text-slate-400 text-base leading-relaxed pb-6">
+                                            {t('help.questions.handover_a')}
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                </Accordion>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border-slate-800/50 backdrop-blur-xl shadow-2xl rounded-[2.5rem] overflow-hidden">
+                            <CardHeader className="p-10 pb-6">
+                                <h3 className="text-2xl font-black flex items-center gap-3 uppercase tracking-tighter text-indigo-400">
+                                    <div className="p-2 bg-indigo-500/20 rounded-lg">
+                                        <Star className="h-6 w-6" />
+                                    </div>
+                                    {t('help.categories.best_practices')}
+                                </h3>
+                            </CardHeader>
+                            <CardContent className="p-10 pt-0 space-y-4">
+                                {Array.isArray(t('help.practices')) && (t('help.practices') as unknown as string[]).map((practice: string, idx: number) => (
+                                    <div key={idx} className="flex items-start gap-4 p-5 bg-white/5 rounded-2xl border border-white/5 group hover:bg-slate-800/50 transition-all duration-300">
+                                        <CheckCircle2 className="h-6 w-6 text-indigo-500 shrink-0 mt-0.5" />
+                                        <p className="text-slate-300 font-medium leading-relaxed">{practice}</p>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
+            </div>
         </div>
     )
 }
+
