@@ -46,14 +46,10 @@ export function AgendaCalendar({ meetings, userId }: AgendaCalendarProps) {
         if (viewMode === 'month') {
             const nextMonth = addMonths(currentDate, 1)
             setCurrentDate(nextMonth)
-            // Ideally, keep same day of month or go to 1st
-            const newSelected = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), selectedDate.getDate())
-            // If invalid date (e.g. Feb 30), it auto corrects or we can fallback to 1st
             setSelectedDate(startOfMonth(nextMonth))
         } else {
             const nextWeek = addDays(currentDate, 7)
             setCurrentDate(nextWeek)
-            // For week view, it keeps the week focus
         }
     }
 
@@ -65,7 +61,6 @@ export function AgendaCalendar({ meetings, userId }: AgendaCalendarProps) {
         } else {
             const prevWeek = addDays(currentDate, -7)
             setCurrentDate(prevWeek)
-            // For week view
         }
     }
 
@@ -75,7 +70,6 @@ export function AgendaCalendar({ meetings, userId }: AgendaCalendarProps) {
         setSelectedDate(today)
     }
 
-    // Generate days based on view mode
     const days = viewMode === 'month'
         ? eachDayOfInterval({
             start: startOfWeek(startOfMonth(currentDate), { locale: ptBR }),
@@ -86,49 +80,55 @@ export function AgendaCalendar({ meetings, userId }: AgendaCalendarProps) {
             end: endOfWeek(currentDate, { locale: ptBR })
         })
 
-    // Get meetings for the selected date (for the side panel/list)
     const selectedDateMeetings = meetings.filter(m =>
         m.start_time && isSameDay(new Date(m.start_time), selectedDate)
     )
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-12rem)]">
+        <div className="flex flex-col lg:flex-row gap-8 h-full min-h-[700px] animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Main Calendar Area */}
-            <div className="flex-1 flex flex-col bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+            <div className="flex-1 flex flex-col bg-slate-900/40 border border-slate-800/50 backdrop-blur-xl rounded-[2.5rem] overflow-hidden shadow-2xl relative group">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+
                 {/* Header */}
-                <div className="p-4 border-b border-border flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-xl font-black capitalize text-foreground">
-                            {format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Semana de' d 'de' MMM", { locale: ptBR })}
-                        </h2>
-                        <div className="flex items-center bg-accent/50 rounded-lg border border-border ml-4">
-                            <Button variant="ghost" size="icon" onClick={prevPeriod} className="h-8 w-8 hover:bg-accent">
-                                <ChevronLeft className="h-4 w-4" />
+                <div className="p-8 border-b border-slate-800/40 flex flex-col md:flex-row items-center justify-between gap-6 bg-slate-950/20">
+                    <div className="flex flex-col md:flex-row items-center gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-cyan-500/10 rounded-2xl ring-1 ring-cyan-500/20">
+                                <CalendarIcon className="h-6 w-6 text-cyan-500" />
+                            </div>
+                            <h2 className="text-3xl font-black tracking-tighter capitalize text-foreground drop-shadow-sm">
+                                {format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Semana de' d 'de' MMM", { locale: ptBR })}
+                            </h2>
+                        </div>
+
+                        <div className="flex items-center bg-slate-950/40 p-1.5 rounded-2xl border border-slate-800/50 shadow-inner">
+                            <Button variant="ghost" size="icon" onClick={prevPeriod} className="h-10 w-10 hover:bg-white/5 rounded-xl transition-all">
+                                <ChevronLeft className="h-5 w-5" />
                             </Button>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={goToToday}
-                                disabled={isSameDay(currentDate, new Date())}
                                 className={cn(
-                                    "h-8 text-[10px] font-black uppercase px-3 hover:bg-accent text-[#06b6d4]",
-                                    isSameDay(currentDate, new Date()) && "opacity-0 pointer-events-none"
+                                    "h-10 px-4 text-xs font-black uppercase tracking-widest hover:bg-white/5 text-cyan-500 transition-all",
+                                    isSameDay(currentDate, new Date()) && "opacity-40 grayscale pointer-events-none"
                                 )}
                             >
-                                Ir para Hoje
+                                Hoje
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={nextPeriod} className="h-8 w-8 hover:bg-accent">
-                                <ChevronRight className="h-4 w-4" />
+                            <Button variant="ghost" size="icon" onClick={nextPeriod} className="h-10 w-10 hover:bg-white/5 rounded-xl transition-all">
+                                <ChevronRight className="h-5 w-5" />
                             </Button>
                         </div>
                     </div>
 
-                    <div className="flex items-center bg-accent/50 p-1 rounded-lg border border-border">
+                    <div className="flex items-center bg-slate-950/40 p-1.5 rounded-2xl border border-slate-800/50">
                         <button
                             onClick={() => setViewMode('month')}
                             className={cn(
-                                "px-3 py-1 text-sm rounded-md transition-all",
-                                viewMode === 'month' ? "bg-[#06b6d4] text-white" : "text-gray-400 hover:text-white"
+                                "px-6 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300",
+                                viewMode === 'month' ? "bg-cyan-600 text-white shadow-lg shadow-cyan-600/20" : "text-slate-500 hover:text-slate-300"
                             )}
                         >
                             Mês
@@ -136,8 +136,8 @@ export function AgendaCalendar({ meetings, userId }: AgendaCalendarProps) {
                         <button
                             onClick={() => setViewMode('week')}
                             className={cn(
-                                "px-3 py-1 text-sm rounded-md transition-all",
-                                viewMode === 'week' ? "bg-[#06b6d4] text-white" : "text-gray-400 hover:text-white"
+                                "px-6 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300",
+                                viewMode === 'week' ? "bg-cyan-600 text-white shadow-lg shadow-cyan-600/20" : "text-slate-500 hover:text-slate-300"
                             )}
                         >
                             Semana
@@ -145,10 +145,10 @@ export function AgendaCalendar({ meetings, userId }: AgendaCalendarProps) {
                     </div>
                 </div>
 
-                {/* Grid Header (Days of Week) */}
-                <div className="grid grid-cols-7 border-b border-border bg-accent/20">
+                {/* Grid Header */}
+                <div className="grid grid-cols-7 border-b border-slate-800/40 bg-slate-950/30">
                     {['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'].map((day) => (
-                        <div key={day} className="py-2 text-center text-[10px] font-black tracking-widest text-muted-foreground">
+                        <div key={day} className="py-4 text-center text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase">
                             {day}
                         </div>
                     ))}
@@ -156,8 +156,8 @@ export function AgendaCalendar({ meetings, userId }: AgendaCalendarProps) {
 
                 {/* Calendar Grid */}
                 <div className={cn(
-                    "grid grid-cols-7 flex-1 overflow-y-auto",
-                    viewMode === 'month' ? "auto-rows-[minmax(100px,1fr)]" : "auto-rows-[1fr]"
+                    "grid grid-cols-7 flex-1 overflow-y-auto no-scrollbar bg-slate-950/10",
+                    viewMode === 'month' ? "auto-rows-[minmax(120px,1fr)]" : "auto-rows-[1fr]"
                 )}>
                     {days.map((day, i) => {
                         const isToday = isSameDay(day, new Date())
@@ -170,39 +170,43 @@ export function AgendaCalendar({ meetings, userId }: AgendaCalendarProps) {
                                 key={i}
                                 onClick={() => setSelectedDate(day)}
                                 className={cn(
-                                    "border-b border-r border-border p-2 flex flex-col cursor-pointer transition-colors relative group",
-                                    !isCurrentMonth && viewMode === 'month' ? "bg-accent/10 text-muted-foreground/50" : "bg-transparent text-foreground",
-                                    isSelected ? "bg-accent/30" : "hover:bg-accent/10"
+                                    "border-b border-r border-slate-800/30 p-4 flex flex-col cursor-pointer transition-all duration-300 relative group",
+                                    !isCurrentMonth && viewMode === 'month' ? "bg-slate-950/40 opacity-30" : "bg-transparent",
+                                    isSelected ? "bg-cyan-500/5 shadow-inner" : "hover:bg-white/5"
                                 )}
                             >
                                 <div className="flex justify-between items-start">
                                     <span className={cn(
-                                        "h-7 w-7 flex items-center justify-center rounded-full text-xs font-bold",
-                                        isToday ? "bg-[#06b6d4] text-white" : ""
+                                        "h-8 w-8 flex items-center justify-center rounded-xl text-sm font-black transition-all duration-300",
+                                        isToday ? "bg-cyan-600 text-white shadow-lg shadow-cyan-600/30 scale-110" : "text-slate-400 group-hover:text-foreground",
+                                        isSelected && !isToday ? "ring-2 ring-cyan-500/30 text-cyan-500" : ""
                                     )}>
                                         {format(day, 'd')}
                                     </span>
                                     {dayMeetings.length > 0 && (
-                                        <span className="text-[10px] font-black text-[#06b6d4] uppercase tracking-tighter">{dayMeetings.length} ev</span>
+                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-cyan-500/10 rounded-full">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                                            <span className="text-[9px] font-black text-cyan-500 uppercase tracking-tighter">{dayMeetings.length} ev</span>
+                                        </div>
                                     )}
                                 </div>
 
-                                <div className="flex-1 mt-2 space-y-1 overflow-hidden">
-                                    {dayMeetings.slice(0, 3).map(m => (
-                                        <div key={m.id} className="text-[10px] bg-[#06b6d4]/10 border border-[#06b6d4]/20 text-[#06b6d4] px-1.5 py-0.5 rounded truncate">
-                                            {format(new Date(m.start_time), 'HH:mm')} {m.title}
+                                <div className="flex-1 mt-4 space-y-1.5">
+                                    {dayMeetings.slice(0, 2).map(m => (
+                                        <div key={m.id} className="text-[10px] font-bold bg-slate-900/60 border border-slate-800/50 text-slate-300 px-2 py-1.5 rounded-xl truncate hover:border-cyan-500/30 transition-colors">
+                                            <span className="text-cyan-500 mr-1.5">{format(new Date(m.start_time), 'HH:mm')}</span>
+                                            {m.title}
                                         </div>
                                     ))}
-                                    {dayMeetings.length > 3 && (
-                                        <div className="text-[10px] text-gray-500 pl-1">
-                                            + {dayMeetings.length - 3} mais
+                                    {dayMeetings.length > 2 && (
+                                        <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-2">
+                                            + {dayMeetings.length - 2} mais
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Hover Action to Create */}
-                                <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Plus className="h-4 w-4 text-gray-400" />
+                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0">
+                                    <Plus className="h-4 w-4 text-cyan-500/50" />
                                 </div>
                             </div>
                         )
@@ -210,49 +214,69 @@ export function AgendaCalendar({ meetings, userId }: AgendaCalendarProps) {
                 </div>
             </div>
 
-            {/* Side Panel / Details */}
-            <div className="w-full lg:w-80 flex flex-col gap-4">
-                <div className="bg-card rounded-xl border border-border p-4 shadow-sm">
-                    <h3 className="text-lg font-black tracking-tighter text-foreground mb-1 uppercase">
-                        {format(selectedDate, "EEEE, d 'de' MMMM", { locale: ptBR })}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mb-6 font-medium">
-                        {selectedDateMeetings.length === 0 ? 'Nenhum evento agendado.' : `${selectedDateMeetings.length} evento(s) agendado(s).`}
-                    </p>
+            {/* Side Panel */}
+            <div className="w-full lg:w-[400px] flex flex-col gap-8 animate-in fade-in slide-in-from-right-8 duration-1000">
+                <div className="bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] border border-slate-800/50 p-8 shadow-2xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-cyan-500/10 transition-colors duration-700" />
 
-                    <div className="space-y-3 max-h-[400px] overflow-y-auto mb-4">
-                        {selectedDateMeetings.map(meeting => (
-                            <Card key={meeting.id} className="bg-accent/20 border-border hover:border-[#06b6d4]/30 transition-colors shadow-none rounded-xl">
-                                <CardContent className="p-3">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h4 className="font-bold text-foreground text-sm line-clamp-1">{meeting.title}</h4>
-                                        <span className="text-xs font-black text-[#06b6d4]">
-                                            {format(new Date(meeting.start_time), 'HH:mm')}
-                                        </span>
-                                    </div>
-                                    <Button asChild size="sm" className="w-full h-8 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold border-0 shadow-lg shadow-emerald-500/20 animate-pulse hover:animate-none">
-                                        <Link href={`/room/${meeting.id}`}>
-                                            Entrar
-                                        </Link>
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
+                    <div className="relative space-y-6">
+                        <div className="space-y-2">
+                            <h3 className="text-2xl font-black tracking-tighter text-foreground uppercase border-l-4 border-cyan-500 pl-4">
+                                {format(selectedDate, "EEEE, d 'de' MMMM", { locale: ptBR })}
+                            </h3>
+                            <p className="text-sm text-slate-500 font-medium italic">
+                                {selectedDateMeetings.length === 0 ? 'Nenhum evento para este dia.' : `${selectedDateMeetings.length} compromisso(s) agendado(s).`}
+                            </p>
+                        </div>
 
-                    <div className="pt-4 border-t border-border">
-                        <CreateMeetingModal userId={userId} preselectedDate={selectedDate} />
+                        <div className="space-y-4 max-h-[450px] overflow-y-auto no-scrollbar pr-2">
+                            {selectedDateMeetings.map(meeting => (
+                                <div key={meeting.id} className="group/card relative">
+                                    <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-3xl opacity-0 group-hover/card:opacity-20 transition duration-500 blur" />
+                                    <Card className="relative bg-slate-950/40 border-slate-800/50 group-hover/card:border-cyan-500/30 transition-all duration-500 rounded-3xl overflow-hidden shadow-none">
+                                        <CardContent className="p-6">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="space-y-1">
+                                                    <h4 className="font-bold text-foreground text-base leading-tight group-hover/card:text-cyan-400 transition-colors">{meeting.title}</h4>
+                                                    <div className="flex items-center gap-2 text-slate-500">
+                                                        <Clock className="h-3.5 w-3.5" />
+                                                        <span className="text-xs font-medium">{format(new Date(meeting.start_time), 'HH:mm')}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="p-2 bg-cyan-500/10 rounded-xl">
+                                                    <Video className="h-4 w-4 text-cyan-500" />
+                                                </div>
+                                            </div>
+                                            <Button asChild className="w-full h-12 bg-white/5 hover:bg-cyan-600 text-foreground hover:text-white rounded-2xl font-black uppercase tracking-widest text-[10px] border-slate-800/50 transition-all duration-500 shadow-xl">
+                                                <Link href={`/room/${meeting.id}`}>
+                                                    Acessar Sala de Interpretação
+                                                </Link>
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="pt-6 border-t border-slate-800/40">
+                            <CreateMeetingModal userId={userId} preselectedDate={selectedDate} />
+                        </div>
                     </div>
                 </div>
 
-                <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-border overflow-hidden shadow-none rounded-2xl">
-                    <CardContent className="p-4">
-                        <h4 className="font-black text-foreground mb-2 flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-[#06b6d4]" />
+                <Card className="bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-cyan-500/10 border-slate-800/50 backdrop-blur-xl rounded-[2.5rem] overflow-hidden shadow-2xl group border-l-purple-500/30 border-l-4">
+                    <CardContent className="p-8 relative">
+                        <div className="absolute top-4 right-8">
+                            <Sparkles className="h-8 w-8 text-cyan-500/20 animate-pulse" />
+                        </div>
+                        <h4 className="font-black text-foreground text-xl mb-3 flex items-center gap-3 tracking-tight">
+                            <div className="bg-white/5 p-2 rounded-xl">
+                                <Sparkles className="h-5 w-5 text-cyan-500" />
+                            </div>
                             Dica Pro
                         </h4>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                            Mantenha sua agenda organizada para garantir que os intérpretes certos estejam disponíveis.
+                        <p className="text-sm text-slate-400 leading-relaxed font-medium">
+                            Mantenha sua agenda organizada para garantir que os <span className="text-cyan-500">intérpretes certos</span> estejam disponíveis para suas reuniões globais.
                         </p>
                     </CardContent>
                 </Card>
