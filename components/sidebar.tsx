@@ -132,10 +132,11 @@ export function Sidebar({ user, userRole, userAvatar, userName, unreadMessagesCo
                                     >
                                         <div className="flex items-center flex-1">
                                             <route.icon className={cn('h-5 w-5 mr-3', isActive ? 'text-primary dark:text-[#22d3ee]' : 'text-muted-foreground group-hover:text-foreground dark:text-blue-300/50 dark:group-hover:text-white')} />
-                                            {route.label}
+                                            <span className="flex-1">{route.label}</span>
                                             {/* Badge */}
-                                            {route.badge && route.badge > 0 && (
-                                                <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse shadow-md shadow-red-500/20">
+                                            {/* Force strict number check to avoid '0' rendering */}
+                                            {typeof route.badge === 'number' && route.badge > 0 && (
+                                                <span className="ml-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse shadow-md shadow-red-500/20">
                                                     {route.badge}
                                                 </span>
                                             )}
