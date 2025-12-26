@@ -52,6 +52,11 @@ export async function updateUserRole(userId: string, newRole: string) {
 
         if (error) return { success: false, error: error.message }
 
+        // Sync to Auth Metadata to ensure robust fallbacks
+        await supabaseAdmin.auth.admin.updateUserById(userId, {
+            user_metadata: { role: newRole }
+        })
+
         await logAdminAction({
             action: 'USER_PROMOTE',
             targetResource: 'user',

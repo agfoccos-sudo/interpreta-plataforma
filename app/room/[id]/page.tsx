@@ -104,10 +104,14 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
                     if (profile) {
                         console.log('Profile fetched:', profile)
-                        setUserName(profile.full_name || profile.username || user.email?.split('@')[0] || t('room.participant_default'))
-                        setCurrentRole(profile.role || 'participant')
+                        setUserName(profile.full_name || profile.username || user?.user_metadata?.full_name || user.email?.split('@')[0] || t('room.participant_default'))
+                        setCurrentRole(profile.role || user?.user_metadata?.role || 'participant')
+                    } else {
+                        // Fallback if profile fetch fails but user exists (shouldn't happen often but RLS might cause it)
+                        console.warn('Profile fetch failed or null. Using metadata.')
+                        setUserName(user?.user_metadata?.full_name || user.email?.split('@')[0] || t('room.participant_default'))
+                        setCurrentRole(user?.user_metadata?.role || 'participant')
                     }
-
                     // Check Meeting Interpreters (Item 1)
                     const { data: meeting } = await supabase
                         .from('meetings')
@@ -467,610 +471,632 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         )
     }
 
-    return (
-        <div className="h-screen bg-[#020817] flex flex-col relative overflow-hidden text-foreground transition-colors duration-500">
-            {/* Top Bar - Auto Hides */}
-            <div className={`absolute top-0 left-0 right-0 p-4 z-[40] flex justify-between items-center transition-all duration-500 ${showUI ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10 pointer-events-none'}`}>
-                <div className="bg-card/40 backdrop-blur-md px-4 py-2 rounded-full pointer-events-auto border border-border flex items-center gap-4 shadow-xl">
-                    <div className="scale-75 origin-left -ml-2">
-                        <Logo />
-                    </div>
-                    <div className="h-4 w-px bg-border/50" />
-                    <span className="font-semibold text-sm opacity-80">ID: {roomId}</span>
+}
 
-                    <ShareMeetingDialog
-                        roomId={roomId}
-                        trigger={
-                            <Button variant="ghost" size="icon" className="h-6 w-6 ml-2 text-white hover:bg-white/10 rounded-full">
-                                <Share2 className="h-3 w-3" />
-                            </Button>
-                        }
-                    />
+if (!isJoined) {
+    // ... pre-call lobby ...
+    // We won't add debug here to avoid clutter, but we could.
+}
 
-                    <div className={`px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1 ${userCount > 1 ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/50'}`}>
-                        <Users className="h-3 w-3" />
-                        {userCount} {t('room.online')}
-                    </div>
+const DEBUG_MODE = true // Enable for user debugging
+
+return (
+    <div className="h-screen bg-[#020817] flex flex-col relative overflow-hidden text-foreground transition-colors duration-500">
+        {/* DEBUG OVERLAY */}
+        {DEBUG_MODE && (
+            <div className="absolute bottom-4 left-4 z-[999] bg-black/80 text-green-400 p-2 text-[10px] font-mono rounded pointer-events-none opacity-50 hover:opacity-100 transition-opacity max-w-xs break-all">
+                <p>Role: {currentRole}</p>
+                <p>Name: {userName}</p>
+                <p>ID: {userId.substring(0, 8)}...</p>
+                <p>Lobby: {isJoined ? 'Joined' : 'Waiting'}</p>
+                <p>Host: {isHost ? 'YES' : 'NO'}</p>
+                <p>Langs: {assignedLanguages.join(',') || 'None'}</p>
+                <p>Console: {(currentRole.toLowerCase().includes('interpreter') || currentRole.toLowerCase().includes('admin')) ? 'VISIBLE' : 'HIDDEN'}</p>
+            </div>
+        )}
+
+        {/* Top Bar - Auto Hides */}
+        <div className={`absolute top-0 left-0 right-0 p-4 z-[40] flex justify-between items-center transition-all duration-500 ${showUI ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10 pointer-events-none'}`}>
+            <div className="bg-card/40 backdrop-blur-md px-4 py-2 rounded-full pointer-events-auto border border-border flex items-center gap-4 shadow-xl">
+                <div className="scale-75 origin-left -ml-2">
+                    <Logo />
                 </div>
+                <div className="h-4 w-px bg-border/50" />
+                <span className="font-semibold text-sm opacity-80">ID: {roomId}</span>
 
-                {/* View Mode Controls - Zoom style */}
-                <div className="bg-card/40 backdrop-blur-md p-0.5 md:p-1 rounded-xl md:rounded-2xl border border-border pointer-events-auto shadow-xl flex gap-1 md:gap-2">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="flex items-center gap-1.5 md:gap-2 px-2 md:px-4 h-8 md:h-10 font-bold text-[10px] md:text-sm rounded-lg md:rounded-xl hover:bg-white/10">
-                                <Maximize2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                                <span className="hidden xs:inline">{t('room.view_mode')}</span>
-                                <ChevronUp className="h-3 w-3 opacity-50 rotate-180" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent side="bottom" align="end" className="w-48 md:w-56 mt-2 rounded-xl md:rounded-2xl bg-black/95 backdrop-blur-3xl border-white/10 p-1 md:p-2 shadow-2xl z-[100]">
-                            <DropdownMenuItem
-                                onClick={() => setViewMode('gallery')}
-                                className={cn("rounded-lg md:rounded-xl p-2 md:p-3 flex items-center justify-between cursor-pointer", viewMode === 'gallery' && "bg-[#06b6d4]/20 text-[#06b6d4]")}
-                            >
-                                <div className="flex items-center gap-2 md:gap-3">
-                                    <LayoutGrid className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                                    <span className="font-semibold text-xs md:text-sm">{t('room.gallery_view')}</span>
-                                </div>
-                                {viewMode === 'gallery' && <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-[#06b6d4]" />}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={() => setViewMode('speaker')}
-                                className={cn("rounded-lg md:rounded-xl p-2 md:p-3 flex items-center justify-between cursor-pointer", viewMode === 'speaker' && "bg-[#06b6d4]/20 text-[#06b6d4]")}
-                            >
-                                <div className="flex items-center gap-2 md:gap-3">
-                                    <Users className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                                    <span className="font-semibold text-xs md:text-sm">{t('room.speaker_view')}</span>
-                                </div>
-                                {viewMode === 'speaker' && <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-[#06b6d4]" />}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-white/10" />
-                            <DropdownMenuItem
-                                onClick={() => {
-                                    if (typeof document !== 'undefined') {
-                                        if (!document.fullscreenElement) {
-                                            document.documentElement.requestFullscreen()
-                                        } else {
-                                            document.exitFullscreen()
-                                        }
-                                    }
-                                }}
-                                className="rounded-lg md:rounded-xl p-2 md:p-3 flex items-center gap-2 md:gap-3 cursor-pointer"
-                            >
-                                <Maximize2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                                <span className="font-semibold text-xs md:text-sm">{t('room.fullscreen')}</span>
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                <ShareMeetingDialog
+                    roomId={roomId}
+                    trigger={
+                        <Button variant="ghost" size="icon" className="h-6 w-6 ml-2 text-white hover:bg-white/10 rounded-full">
+                            <Share2 className="h-3 w-3" />
+                        </Button>
+                    }
+                />
+
+                <div className={`px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1 ${userCount > 1 ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/50'}`}>
+                    <Users className="h-3 w-3" />
+                    {userCount} {t('room.online')}
                 </div>
             </div>
 
-            {/* Main Layout (Flex Row) */}
-            <div className="flex-1 flex overflow-hidden relative">
-                {/* Video Grid Section */}
-                <div className="flex-1 min-w-0 p-2 md:p-6 flex items-center justify-center transition-all duration-300 relative">
-                    <VideoGrid
-                        peers={paginatedPeers}
-                        localStream={localStream}
-                        currentRole={currentRole}
-                        micOn={micOn}
-                        cameraOn={cameraOn}
-                        mode={viewMode}
-                        activeSpeakerId={activeSpeakerId}
-                        pinnedSpeakerId={pinnedSpeakerId}
-                        onSpeakerChange={handleSpeakerChange}
-                        onPeerSpeaking={handlePeerSpeaking}
-                        localUserName={userName}
-                        selectedLang={selectedLang}
-                        volumeBalance={volumeBalance}
-                        handRaised={localHandRaised}
-                    />
-
-                    {/* Pagination Controls */}
-                    {totalPages > 1 && (
-                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 z-[60]">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                disabled={currentPage === 1}
-                                onClick={() => setCurrentPage(p => p - 1)}
-                                className="text-white hover:bg-white/10"
-                            >
-                                <ChevronLeft className="h-5 w-5" />
-                            </Button>
-                            <span className="text-xs font-bold text-white">
-                                {currentPage} {t('room.page_of')} {totalPages}
-                            </span>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                disabled={currentPage === totalPages}
-                                onClick={() => setCurrentPage(p => p + 1)}
-                                className="text-white hover:bg-white/10"
-                            >
-                                <ChevronRight className="h-5 w-5" />
-                            </Button>
-                        </div>
-                    )}
-                </div>
-
-                {/* Sidebars */}
-                <AnimatePresence>
-                    {activeSidebar === 'chat' && (
-                        <motion.div
-                            initial={{ x: '100%', opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: '100%', opacity: 0 }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="absolute md:relative inset-y-0 right-0 md:inset-auto z-[60] md:z-10 w-full md:w-80 shrink-0 border-l border-border/10 bg-card"
-                        >
-                            <div className="h-full w-full md:w-80">
-                                <ChatPanel
-                                    messages={messages}
-                                    userId={userId}
-                                    peers={peers}
-                                    onSendMessage={sendMessage}
-                                    onClose={() => setActiveSidebar(null)} // Add close prop
-                                />
-                            </div>
-                        </motion.div>
-                    )}
-                    {activeSidebar === 'participants' && (
-                        <motion.div
-                            initial={{ x: '100%', opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: '100%', opacity: 0 }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="absolute md:relative inset-y-0 right-0 md:inset-auto z-[60] md:z-10 w-full md:w-80 shrink-0 border-l border-border/10 bg-card"
-                        >
-                            <div className="h-full w-full md:w-80">
-                                <ParticipantList
-                                    peers={peers}
-                                    userRole={currentRole}
-                                    userCount={userCount}
-                                    isHost={isHost}
-                                    hostId={hostId}
-                                    onPromote={promoteToHost}
-                                    onKick={kickUser}
-                                    onUpdateRole={updateUserRole}
-                                    onUpdateLanguages={updateUserLanguages}
-                                    onClose={() => setActiveSidebar(null)}
-                                />
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            {/* Attention Toast (Chamada de Atenção) */}
-            <AnimatePresence>
-                {attentionToast && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -50, x: '-50%' }}
-                        animate={{ opacity: 1, y: 0, x: '-50%' }}
-                        exit={{ opacity: 0, y: -20, x: '-50%' }}
-                        className="fixed top-8 left-1/2 z-[100] bg-amber-500 text-white px-6 py-4 rounded-[2rem] shadow-2xl border-4 border-white/20 flex items-center gap-4"
-                    >
-                        <div className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center animate-bounce">
-                            <Hand className="h-6 w-6 text-white" />
-                        </div>
-                        <div>
-                            <div className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('room.attention')}</div>
-                            <div className="text-lg font-black">{attentionToast.name} {t('room.raised_hand')}</div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Error Banner */}
-            {mediaError && (
-                <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-8 py-4 rounded-[2rem] z-50 text-center animate-bounce font-black shadow-2xl border-4 border-white/20">
-                    ⚠️ {t('room.camera_error')} {mediaError}
-                </div>
-            )}
-
-
-
-            {/* Interpreter Console (Central Cockpit) */}
-            {/* Interpreter Console (Unified Strip) */}
-            {/* Interpreter Console (Central Cockpit) */}
-            {/* Interpreter Console (Central Cockpit) */}
-            {(() => { console.log('Render: currentRole', currentRole, 'Should show console?', (currentRole.toLowerCase().includes('interpreter') || currentRole.toLowerCase().includes('admin'))); return null; })()}
-            {(currentRole.toLowerCase().includes('interpreter') || currentRole.toLowerCase().includes('admin')) && (
-                <>
-                    <InterpreterSetupModal
-                        isOpen={isJoined && currentRole.toLowerCase().includes('interpreter') && assignedLanguages.length === 0 && myBroadcastLang === 'floor'} // Show if interpreter, joined, and hasn't picked non-floor language (unless pre-assigned restricted)
-                        // Logic refinement: If user has 'assignedLanguages' from DB, maybe we don't need modal? Or we do active selection from allowed?
-                        // Let's assume we force selection if myBroadcastLang is 'floor' (default).
-                        // We need a state to track "setup done" to avoid showing it if they genuinely want to be on 'floor' (unlikely for active interpreter).
-                        // Better: use explicit state [interpreterSetupDone, setInterpreterSetupDone]
-                        // But for now, let's use the local state I'll add below.
-
-                        availableLanguages={availableSystemLanguages}
-                        occupiedLanguages={peers.filter(p => p.role?.includes('interpreter') && p.userId !== userId).map(p => p.language).filter(Boolean) as string[]}
-                        onSelect={(lang) => {
-                            setMyBroadcastLang(lang)
-                            // Trigger update metadata immediate
-                            updateMetadata({ language: lang })
-                        }}
-                        userName={userName}
-                    />
-
-                    <InterpreterConsole
-                        active={micOn}
-                        onToggleActive={handleToggleMic}
-                        currentLanguage={myBroadcastLang}
-                        onLanguageChange={(lang) => {
-                            setMyBroadcastLang(lang)
-                            updateMetadata({ language: lang })
-                        }}
-                        isListeningToFloor={selectedLang === 'original'}
-                        onListenToFloor={() => handleLangChange('original')}
-                        onHandover={() => sendEmoji('🔄')}
-                        availableLanguages={availableSystemLanguages}
-                        allowedLanguages={assignedLanguages.length > 0 ? assignedLanguages : undefined}
-                        occupiedLanguages={peers.filter(p => p.role?.includes('interpreter') && p.userId !== userId).map(p => p.language).filter(Boolean) as string[]}
-                    />
-                </>
-            )}
-            {/* Language Menu (Moved to Root) */}
-            <AnimatePresence>
-                {showLangMenu && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="fixed bottom-32 left-1/2 -translate-x-1/2 w-80 bg-card/90 backdrop-blur-2xl border border-border rounded-[2.5rem] shadow-3xl p-4 z-[70]"
-                    >
-                        <div className="text-[10px] font-black text-muted-foreground px-4 py-2 uppercase tracking-[0.3em] mb-2">
-                            {t('room.translation_channels')}
-                        </div>
-                        <div className="max-h-[350px] overflow-y-auto pr-1 space-y-1 custom-scrollbar">
-                            {ROOM_LANGUAGES.map((lang) => (
-                                <button
-                                    key={lang.code}
-                                    onClick={() => handleLangChange(lang.code)}
-                                    className={cn(
-                                        "w-full flex items-center p-4 rounded-2xl transition-all active:scale-[0.98]",
-                                        selectedLang === lang.code
-                                            ? 'bg-[#06b6d4]/10 text-[#06b6d4] ring-1 ring-[#06b6d4]/30'
-                                            : 'hover:bg-accent/50 text-muted-foreground'
-                                    )}
-                                >
-                                    <span className="text-2xl mr-4">{lang.flag}</span>
-                                    <span className="font-bold text-sm tracking-tight">{lang.name}</span>
-                                    {selectedLang === lang.code && (
-                                        <div className="ml-auto w-2 h-2 rounded-full bg-[#06b6d4] shadow-[0_0_10px_#06b6d4]" />
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Bottom Control Bar */}
-            <div className="h-24 md:h-28 bg-card/60 backdrop-blur-3xl border-t border-border flex items-center justify-start md:justify-center gap-4 md:gap-6 relative z-[50] px-4 md:px-10 overflow-x-auto no-scrollbar pb-safe">
-                <div className="flex items-center gap-2 md:gap-4 shrink-0">
-                    {/* Mic Control */}
-                    <div className="flex items-center gap-0.5 bg-background/50 backdrop-blur rounded-2xl p-1 border border-border/50 shadow-sm group hover:border-[#06b6d4]/50 transition-colors">
-                        <Button
-                            variant={micOn ? "ghost" : "destructive"}
-                            size="icon"
-                            className={cn(
-                                "h-10 w-10 md:h-12 md:w-12 rounded-lg md:rounded-xl rounded-r-none border-0 transition-all",
-                                micOn ? "bg-accent/20 text-foreground hover:bg-accent/40" : "bg-red-500 text-white shadow-red-500/20"
-                            )}
-                            onClick={handleToggleMic}
-                        >
-                            {micOn ? <Mic className="h-4 w-4 md:h-5 md:w-5" /> : <MicOff className="h-4 w-4 md:h-5 md:w-5" />}
-                        </Button>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-12 w-6 rounded-xl rounded-l-none border-l border-white/5 hover:bg-accent/40">
-                                    <ChevronUp className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent side="top" align="center" className="w-64 mb-4 rounded-2xl bg-black/90 backdrop-blur-3xl border-white/10 p-2 shadow-2xl">
-                                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">{t('room.microphone')}</DropdownMenuLabel>
-                                {audioInputs.map((device, i) => (
-                                    <DropdownMenuItem
-                                        key={i}
-                                        onClick={() => switchDeviceWebRTC('audio', device.deviceId)}
-                                        className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5"
-                                    >
-                                        {device.label || `Microphone ${i + 1}`}
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-
-                    {/* Camera Control */}
-                    <div className="flex items-center gap-0.5 bg-background/50 backdrop-blur rounded-2xl p-1 border border-border/50 shadow-sm group hover:border-[#06b6d4]/50 transition-colors">
-                        <Button
-                            variant={cameraOn ? "ghost" : "destructive"}
-                            size="icon"
-                            className={cn(
-                                "h-10 w-10 md:h-12 md:w-12 rounded-lg md:rounded-xl rounded-r-none border-0 transition-all",
-                                cameraOn ? "bg-accent/20 text-foreground hover:bg-accent/40" : "bg-red-500 text-white shadow-red-500/20"
-                            )}
-                            onClick={handleToggleCamera}
-                        >
-                            {cameraOn ? <Video className="h-4 w-4 md:h-5 md:w-5" /> : <VideoOff className="h-4 w-4 md:h-5 md:w-5" />}
-                        </Button>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-12 w-6 rounded-xl rounded-l-none border-l border-white/5 hover:bg-accent/40">
-                                    <ChevronUp className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent side="top" align="center" className="w-64 mb-4 rounded-2xl bg-black/90 backdrop-blur-3xl border-white/10 p-2 shadow-2xl">
-                                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">{t('room.camera')}</DropdownMenuLabel>
-                                {videoInputs.map((device, i) => (
-                                    <DropdownMenuItem
-                                        key={i}
-                                        onClick={() => switchDeviceWebRTC('video', device.deviceId)}
-                                        className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5"
-                                    >
-                                        {device.label || `Camera ${i + 1}`}
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant={isSharing ? "default" : "secondary"}
-                                size="icon"
-                                disabled={isAnySharing && !isSharing}
-                                className={cn(
-                                    "h-12 w-12 md:h-14 md:w-14 rounded-lg md:rounded-2xl shadow-xl transition-all active:scale-95 border-0",
-                                    isSharing ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20 animate-pulse" : "bg-accent/50 text-foreground hover:bg-accent",
-                                    isAnySharing && !isSharing && "opacity-50 cursor-not-allowed grayscale"
-                                )}
-                                title={isAnySharing && !isSharing ? t('room.room_busy') : t('room.share')}
-                            >
-                                <Monitor className="h-5 w-5 md:h-6 md:w-6" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent side="top" align="center" className="w-56 mb-4 rounded-2xl bg-card/80 backdrop-blur-xl border-border p-2 shadow-2xl">
-                            <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">{t('room.share_options')}</DropdownMenuLabel>
-                            <DropdownMenuItem
-                                onClick={handleToggleShare}
-                                className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5 flex items-center gap-2"
-                            >
-                                <Monitor className="h-4 w-4" />
-                                {isSharing ? t('room.stop_share') : t('room.share_screen')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={() => fileInputRef.current?.click()}
-                                className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5 flex items-center gap-2"
-                            >
-                                <PlayCircle className="h-4 w-4" />
-                                {t('room.share_local_video')}
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleVideoFileChange}
-                        accept="video/*"
-                        className="hidden"
-                    />
-
-                    <SettingsDialog
-                        audioDevices={audioInputs}
-                        videoDevices={videoInputs}
-                        currentAudioId={localStorage.getItem('preferredAudioDevice') || undefined}
-                        currentVideoId={localStorage.getItem('preferredVideoDevice') || undefined}
-                        localStream={localStream}
-                        onSwitch={switchDeviceWebRTC}
-                    />
-
-                    <div className="w-px h-10 bg-border/50 hidden md:block" />
-
-                    {/* Raised Hand */}
-                    <Button
-                        variant={localHandRaised ? "default" : "secondary"}
-                        size="icon"
-                        className={cn(
-                            "h-12 w-12 md:h-14 md:w-14 rounded-lg md:rounded-2xl shadow-xl transition-all active:scale-95 border-0",
-                            localHandRaised ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20" : "bg-accent/50 text-foreground hover:bg-accent"
-                        )}
-                        onClick={toggleHand}
-                        title={t('room.raise_hand')}
-                    >
-                        <Hand className={cn("h-5 w-5 md:h-6 md:w-6", localHandRaised && "animate-bounce")} />
-                    </Button>
-
-                    {/* Reactions Menu */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="secondary"
-                                size="icon"
-                                className="h-14 w-14 rounded-2xl shadow-xl bg-accent/50 text-foreground hover:bg-accent border-0"
-                                title={t('room.send_reaction')}
-                            >
-                                <Smile className="h-6 w-6" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent side="top" align="center" className="p-2 gap-2 flex bg-card/80 backdrop-blur-xl border-border rounded-2xl mb-4">
-                            {['❤️', '👏', '🎉', '😂', '😮', '😢', '👍', '🔥'].map((emoji) => (
-                                <Button
-                                    key={emoji}
-                                    variant="ghost"
-                                    className="h-12 w-12 text-2xl p-0 hover:bg-white/10 rounded-xl"
-                                    onClick={() => sendEmoji(emoji)}
-                                >
-                                    {emoji}
-                                </Button>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-
-                <div className="w-px h-10 bg-border/50 hidden md:block" />
-
-                {/* Language Selection - Globe style */}
+            {/* View Mode Controls - Zoom style */}
+            <div className="bg-card/40 backdrop-blur-md p-0.5 md:p-1 rounded-xl md:rounded-2xl border border-border pointer-events-auto shadow-xl flex gap-1 md:gap-2">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button
-                            variant={selectedLang === 'original' ? "secondary" : "default"}
-                            size="icon"
-                            className={cn(
-                                "h-14 w-14 rounded-2xl shadow-xl transition-all active:scale-95 border-0",
-                                selectedLang !== 'original' ? "bg-[#06b6d4] text-white hover:bg-[#0891b2]" : "bg-accent/50 text-foreground hover:bg-accent"
-                            )}
-                            title={t('room.meeting_language')}
-                        >
-                            <Globe className="h-6 w-6" />
-                            {selectedLang !== 'original' && (
-                                <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-4 w-4 bg-cyan-500 border border-white dark:border-black text-[8px] items-center justify-center font-bold">
-                                        {selectedLang.toUpperCase()}
-                                    </span>
-                                </span>
-                            )}
+                        <Button variant="ghost" className="flex items-center gap-1.5 md:gap-2 px-2 md:px-4 h-8 md:h-10 font-bold text-[10px] md:text-sm rounded-lg md:rounded-xl hover:bg-white/10">
+                            <Maximize2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                            <span className="hidden xs:inline">{t('room.view_mode')}</span>
+                            <ChevronUp className="h-3 w-3 opacity-50 rotate-180" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="top" align="end" className="w-56 max-h-[70vh] overflow-y-auto mb-4 rounded-2xl bg-card border-border p-2 shadow-2xl custom-scrollbar">
-                        <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">{t('room.listening_language')}</DropdownMenuLabel>
+                    <DropdownMenuContent side="bottom" align="end" className="w-48 md:w-56 mt-2 rounded-xl md:rounded-2xl bg-black/95 backdrop-blur-3xl border-white/10 p-1 md:p-2 shadow-2xl z-[100]">
+                        <DropdownMenuItem
+                            onClick={() => setViewMode('gallery')}
+                            className={cn("rounded-lg md:rounded-xl p-2 md:p-3 flex items-center justify-between cursor-pointer", viewMode === 'gallery' && "bg-[#06b6d4]/20 text-[#06b6d4]")}
+                        >
+                            <div className="flex items-center gap-2 md:gap-3">
+                                <LayoutGrid className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                                <span className="font-semibold text-xs md:text-sm">{t('room.gallery_view')}</span>
+                            </div>
+                            {viewMode === 'gallery' && <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-[#06b6d4]" />}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => setViewMode('speaker')}
+                            className={cn("rounded-lg md:rounded-xl p-2 md:p-3 flex items-center justify-between cursor-pointer", viewMode === 'speaker' && "bg-[#06b6d4]/20 text-[#06b6d4]")}
+                        >
+                            <div className="flex items-center gap-2 md:gap-3">
+                                <Users className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                                <span className="font-semibold text-xs md:text-sm">{t('room.speaker_view')}</span>
+                            </div>
+                            {viewMode === 'speaker' && <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-[#06b6d4]" />}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-white/10" />
+                        <DropdownMenuItem
+                            onClick={() => {
+                                if (typeof document !== 'undefined') {
+                                    if (!document.fullscreenElement) {
+                                        document.documentElement.requestFullscreen()
+                                    } else {
+                                        document.exitFullscreen()
+                                    }
+                                }
+                            }}
+                            className="rounded-lg md:rounded-xl p-2 md:p-3 flex items-center gap-2 md:gap-3 cursor-pointer"
+                        >
+                            <Maximize2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                            <span className="font-semibold text-xs md:text-sm">{t('room.fullscreen')}</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </div>
+
+        {/* Main Layout (Flex Row) */}
+        <div className="flex-1 flex overflow-hidden relative">
+            {/* Video Grid Section */}
+            <div className="flex-1 min-w-0 p-2 md:p-6 flex items-center justify-center transition-all duration-300 relative">
+                <VideoGrid
+                    peers={paginatedPeers}
+                    localStream={localStream}
+                    currentRole={currentRole}
+                    micOn={micOn}
+                    cameraOn={cameraOn}
+                    mode={viewMode}
+                    activeSpeakerId={activeSpeakerId}
+                    pinnedSpeakerId={pinnedSpeakerId}
+                    onSpeakerChange={handleSpeakerChange}
+                    onPeerSpeaking={handlePeerSpeaking}
+                    localUserName={userName}
+                    selectedLang={selectedLang}
+                    volumeBalance={volumeBalance}
+                    handRaised={localHandRaised}
+                />
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 z-[60]">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage(p => p - 1)}
+                            className="text-white hover:bg-white/10"
+                        >
+                            <ChevronLeft className="h-5 w-5" />
+                        </Button>
+                        <span className="text-xs font-bold text-white">
+                            {currentPage} {t('room.page_of')} {totalPages}
+                        </span>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={currentPage === totalPages}
+                            onClick={() => setCurrentPage(p => p + 1)}
+                            className="text-white hover:bg-white/10"
+                        >
+                            <ChevronRight className="h-5 w-5" />
+                        </Button>
+                    </div>
+                )}
+            </div>
+
+            {/* Sidebars */}
+            <AnimatePresence>
+                {activeSidebar === 'chat' && (
+                    <motion.div
+                        initial={{ x: '100%', opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: '100%', opacity: 0 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                        className="absolute md:relative inset-y-0 right-0 md:inset-auto z-[60] md:z-10 w-full md:w-80 shrink-0 border-l border-border/10 bg-card"
+                    >
+                        <div className="h-full w-full md:w-80">
+                            <ChatPanel
+                                messages={messages}
+                                userId={userId}
+                                peers={peers}
+                                onSendMessage={sendMessage}
+                                onClose={() => setActiveSidebar(null)} // Add close prop
+                            />
+                        </div>
+                    </motion.div>
+                )}
+                {activeSidebar === 'participants' && (
+                    <motion.div
+                        initial={{ x: '100%', opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: '100%', opacity: 0 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                        className="absolute md:relative inset-y-0 right-0 md:inset-auto z-[60] md:z-10 w-full md:w-80 shrink-0 border-l border-border/10 bg-card"
+                    >
+                        <div className="h-full w-full md:w-80">
+                            <ParticipantList
+                                peers={peers}
+                                userRole={currentRole}
+                                userCount={userCount}
+                                isHost={isHost}
+                                hostId={hostId}
+                                onPromote={promoteToHost}
+                                onKick={kickUser}
+                                onUpdateRole={updateUserRole}
+                                onUpdateLanguages={updateUserLanguages}
+                                onClose={() => setActiveSidebar(null)}
+                            />
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+
+        {/* Attention Toast (Chamada de Atenção) */}
+        <AnimatePresence>
+            {attentionToast && (
+                <motion.div
+                    initial={{ opacity: 0, y: -50, x: '-50%' }}
+                    animate={{ opacity: 1, y: 0, x: '-50%' }}
+                    exit={{ opacity: 0, y: -20, x: '-50%' }}
+                    className="fixed top-8 left-1/2 z-[100] bg-amber-500 text-white px-6 py-4 rounded-[2rem] shadow-2xl border-4 border-white/20 flex items-center gap-4"
+                >
+                    <div className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center animate-bounce">
+                        <Hand className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                        <div className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('room.attention')}</div>
+                        <div className="text-lg font-black">{attentionToast.name} {t('room.raised_hand')}</div>
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+
+        {/* Error Banner */}
+        {mediaError && (
+            <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-8 py-4 rounded-[2rem] z-50 text-center animate-bounce font-black shadow-2xl border-4 border-white/20">
+                ⚠️ {t('room.camera_error')} {mediaError}
+            </div>
+        )}
+
+
+
+        {/* Interpreter Console (Central Cockpit) */}
+        {/* Interpreter Console (Unified Strip) */}
+        {/* Interpreter Console (Central Cockpit) */}
+        {/* Interpreter Console (Central Cockpit) */}
+        {(() => { console.log('Render: currentRole', currentRole, 'Should show console?', (currentRole.toLowerCase().includes('interpreter') || currentRole.toLowerCase().includes('admin'))); return null; })()}
+        {(currentRole.toLowerCase().includes('interpreter') || currentRole.toLowerCase().includes('admin')) && (
+            <>
+                <InterpreterSetupModal
+                    isOpen={isJoined && currentRole.toLowerCase().includes('interpreter') && assignedLanguages.length === 0 && myBroadcastLang === 'floor'} // Show if interpreter, joined, and hasn't picked non-floor language (unless pre-assigned restricted)
+                    // Logic refinement: If user has 'assignedLanguages' from DB, maybe we don't need modal? Or we do active selection from allowed?
+                    // Let's assume we force selection if myBroadcastLang is 'floor' (default).
+                    // We need a state to track "setup done" to avoid showing it if they genuinely want to be on 'floor' (unlikely for active interpreter).
+                    // Better: use explicit state [interpreterSetupDone, setInterpreterSetupDone]
+                    // But for now, let's use the local state I'll add below.
+
+                    availableLanguages={availableSystemLanguages}
+                    occupiedLanguages={peers.filter(p => p.role?.includes('interpreter') && p.userId !== userId).map(p => p.language).filter(Boolean) as string[]}
+                    onSelect={(lang) => {
+                        setMyBroadcastLang(lang)
+                        // Trigger update metadata immediate
+                        updateMetadata({ language: lang })
+                    }}
+                    userName={userName}
+                />
+
+                <InterpreterConsole
+                    active={micOn}
+                    onToggleActive={handleToggleMic}
+                    currentLanguage={myBroadcastLang}
+                    onLanguageChange={(lang) => {
+                        setMyBroadcastLang(lang)
+                        updateMetadata({ language: lang })
+                    }}
+                    isListeningToFloor={selectedLang === 'original'}
+                    onListenToFloor={() => handleLangChange('original')}
+                    onHandover={() => sendEmoji('🔄')}
+                    availableLanguages={availableSystemLanguages}
+                    allowedLanguages={assignedLanguages.length > 0 ? assignedLanguages : undefined}
+                    occupiedLanguages={peers.filter(p => p.role?.includes('interpreter') && p.userId !== userId).map(p => p.language).filter(Boolean) as string[]}
+                />
+            </>
+        )}
+        {/* Language Menu (Moved to Root) */}
+        <AnimatePresence>
+            {showLangMenu && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="fixed bottom-32 left-1/2 -translate-x-1/2 w-80 bg-card/90 backdrop-blur-2xl border border-border rounded-[2.5rem] shadow-3xl p-4 z-[70]"
+                >
+                    <div className="text-[10px] font-black text-muted-foreground px-4 py-2 uppercase tracking-[0.3em] mb-2">
+                        {t('room.translation_channels')}
+                    </div>
+                    <div className="max-h-[350px] overflow-y-auto pr-1 space-y-1 custom-scrollbar">
                         {ROOM_LANGUAGES.map((lang) => (
-                            <DropdownMenuItem
+                            <button
                                 key={lang.code}
                                 onClick={() => handleLangChange(lang.code)}
                                 className={cn(
-                                    "rounded-xl p-3 flex items-center justify-between cursor-pointer",
-                                    selectedLang === lang.code && "bg-[#06b6d4]/20 text-[#06b6d4]"
+                                    "w-full flex items-center p-4 rounded-2xl transition-all active:scale-[0.98]",
+                                    selectedLang === lang.code
+                                        ? 'bg-[#06b6d4]/10 text-[#06b6d4] ring-1 ring-[#06b6d4]/30'
+                                        : 'hover:bg-accent/50 text-muted-foreground'
                                 )}
                             >
-                                <div className="flex items-center gap-3">
-                                    <span className="text-lg">{lang.flag}</span>
-                                    <span className="font-semibold">{lang.name}</span>
-                                </div>
-                                {selectedLang === lang.code && <div className="h-2 w-2 rounded-full bg-[#06b6d4]" />}
-                            </DropdownMenuItem>
+                                <span className="text-2xl mr-4">{lang.flag}</span>
+                                <span className="font-bold text-sm tracking-tight">{lang.name}</span>
+                                {selectedLang === lang.code && (
+                                    <div className="ml-auto w-2 h-2 rounded-full bg-[#06b6d4] shadow-[0_0_10px_#06b6d4]" />
+                                )}
+                            </button>
                         ))}
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+
+        {/* Bottom Control Bar */}
+        <div className="h-24 md:h-28 bg-card/60 backdrop-blur-3xl border-t border-border flex items-center justify-start md:justify-center gap-4 md:gap-6 relative z-[50] px-4 md:px-10 overflow-x-auto no-scrollbar pb-safe">
+            <div className="flex items-center gap-2 md:gap-4 shrink-0">
+                {/* Mic Control */}
+                <div className="flex items-center gap-0.5 bg-background/50 backdrop-blur rounded-2xl p-1 border border-border/50 shadow-sm group hover:border-[#06b6d4]/50 transition-colors">
+                    <Button
+                        variant={micOn ? "ghost" : "destructive"}
+                        size="icon"
+                        className={cn(
+                            "h-10 w-10 md:h-12 md:w-12 rounded-lg md:rounded-xl rounded-r-none border-0 transition-all",
+                            micOn ? "bg-accent/20 text-foreground hover:bg-accent/40" : "bg-red-500 text-white shadow-red-500/20"
+                        )}
+                        onClick={handleToggleMic}
+                    >
+                        {micOn ? <Mic className="h-4 w-4 md:h-5 md:w-5" /> : <MicOff className="h-4 w-4 md:h-5 md:w-5" />}
+                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-12 w-6 rounded-xl rounded-l-none border-l border-white/5 hover:bg-accent/40">
+                                <ChevronUp className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="top" align="center" className="w-64 mb-4 rounded-2xl bg-black/90 backdrop-blur-3xl border-white/10 p-2 shadow-2xl">
+                            <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">{t('room.microphone')}</DropdownMenuLabel>
+                            {audioInputs.map((device, i) => (
+                                <DropdownMenuItem
+                                    key={i}
+                                    onClick={() => switchDeviceWebRTC('audio', device.deviceId)}
+                                    className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5"
+                                >
+                                    {device.label || `Microphone ${i + 1}`}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+
+                {/* Camera Control */}
+                <div className="flex items-center gap-0.5 bg-background/50 backdrop-blur rounded-2xl p-1 border border-border/50 shadow-sm group hover:border-[#06b6d4]/50 transition-colors">
+                    <Button
+                        variant={cameraOn ? "ghost" : "destructive"}
+                        size="icon"
+                        className={cn(
+                            "h-10 w-10 md:h-12 md:w-12 rounded-lg md:rounded-xl rounded-r-none border-0 transition-all",
+                            cameraOn ? "bg-accent/20 text-foreground hover:bg-accent/40" : "bg-red-500 text-white shadow-red-500/20"
+                        )}
+                        onClick={handleToggleCamera}
+                    >
+                        {cameraOn ? <Video className="h-4 w-4 md:h-5 md:w-5" /> : <VideoOff className="h-4 w-4 md:h-5 md:w-5" />}
+                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-12 w-6 rounded-xl rounded-l-none border-l border-white/5 hover:bg-accent/40">
+                                <ChevronUp className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="top" align="center" className="w-64 mb-4 rounded-2xl bg-black/90 backdrop-blur-3xl border-white/10 p-2 shadow-2xl">
+                            <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">{t('room.camera')}</DropdownMenuLabel>
+                            {videoInputs.map((device, i) => (
+                                <DropdownMenuItem
+                                    key={i}
+                                    onClick={() => switchDeviceWebRTC('video', device.deviceId)}
+                                    className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5"
+                                >
+                                    {device.label || `Camera ${i + 1}`}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant={isSharing ? "default" : "secondary"}
+                            size="icon"
+                            disabled={isAnySharing && !isSharing}
+                            className={cn(
+                                "h-12 w-12 md:h-14 md:w-14 rounded-lg md:rounded-2xl shadow-xl transition-all active:scale-95 border-0",
+                                isSharing ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20 animate-pulse" : "bg-accent/50 text-foreground hover:bg-accent",
+                                isAnySharing && !isSharing && "opacity-50 cursor-not-allowed grayscale"
+                            )}
+                            title={isAnySharing && !isSharing ? t('room.room_busy') : t('room.share')}
+                        >
+                            <Monitor className="h-5 w-5 md:h-6 md:w-6" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="top" align="center" className="w-56 mb-4 rounded-2xl bg-card/80 backdrop-blur-xl border-border p-2 shadow-2xl">
+                        <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">{t('room.share_options')}</DropdownMenuLabel>
+                        <DropdownMenuItem
+                            onClick={handleToggleShare}
+                            className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5 flex items-center gap-2"
+                        >
+                            <Monitor className="h-4 w-4" />
+                            {isSharing ? t('room.stop_share') : t('room.share_screen')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => fileInputRef.current?.click()}
+                            className="rounded-xl focus:bg-[#06b6d4]/20 focus:text-[#06b6d4] cursor-pointer text-xs font-medium py-2.5 flex items-center gap-2"
+                        >
+                            <PlayCircle className="h-4 w-4" />
+                            {t('room.share_local_video')}
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
 
-                {selectedLang !== 'original' && (
-                    <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="fixed bottom-32 right-10 bg-card/80 backdrop-blur-3xl p-8 rounded-[3rem] border border-border w-64 shadow-2xl z-[50]"
-                    >
-                        <div className="flex justify-between text-[10px] uppercase font-black tracking-[0.2em] text-[#06b6d4] mb-4">
-                            <span>{t('room.floor')}</span>
-                            <span>{t('room.interpreter')}</span>
-                        </div>
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={volumeBalance}
-                            onChange={(e) => setVolumeBalance(Number(e.target.value))}
-                            className="w-full h-2 bg-accent/30 rounded-full appearance-none cursor-pointer accent-[#06b6d4]"
-                        />
-                        <div className="text-center text-[10px] text-muted-foreground mt-4 font-black tracking-widest uppercase">
-                            {t('room.audio_mix')}: {100 - volumeBalance}% / {volumeBalance}%
-                        </div>
-                    </motion.div>
-                )}
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleVideoFileChange}
+                    accept="video/*"
+                    className="hidden"
+                />
+
+                <SettingsDialog
+                    audioDevices={audioInputs}
+                    videoDevices={videoInputs}
+                    currentAudioId={localStorage.getItem('preferredAudioDevice') || undefined}
+                    currentVideoId={localStorage.getItem('preferredVideoDevice') || undefined}
+                    localStream={localStream}
+                    onSwitch={switchDeviceWebRTC}
+                />
 
                 <div className="w-px h-10 bg-border/50 hidden md:block" />
 
-                {currentRole === 'interpreter' && (
-                    <Button
-                        variant="default"
-                        className="h-14 px-8 rounded-2xl font-black border-2 transition-all active:scale-95 bg-purple-600 hover:bg-purple-700 border-purple-500 shadow-[0_0_30px_rgba(147,51,234,0.4)] text-white"
-                        onClick={() => {
-                            // Already an interpreter, but maybe the button toggles the broadcast lang or panel
-                            // For now keep it as is or change to toggle controls
-                        }}
-                    >
-                        <Mic className="h-5 w-5 mr-3" />
-                        {t('room.mode_interpreter')}
-                    </Button>
-                )}
+                {/* Raised Hand */}
+                <Button
+                    variant={localHandRaised ? "default" : "secondary"}
+                    size="icon"
+                    className={cn(
+                        "h-12 w-12 md:h-14 md:w-14 rounded-lg md:rounded-2xl shadow-xl transition-all active:scale-95 border-0",
+                        localHandRaised ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20" : "bg-accent/50 text-foreground hover:bg-accent"
+                    )}
+                    onClick={toggleHand}
+                    title={t('room.raise_hand')}
+                >
+                    <Hand className={cn("h-5 w-5 md:h-6 md:w-6", localHandRaised && "animate-bounce")} />
+                </Button>
 
-                <div className="flex bg-accent/20 rounded-2xl p-1.5 border border-border">
+                {/* Reactions Menu */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="secondary"
+                            size="icon"
+                            className="h-14 w-14 rounded-2xl shadow-xl bg-accent/50 text-foreground hover:bg-accent border-0"
+                            title={t('room.send_reaction')}
+                        >
+                            <Smile className="h-6 w-6" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="top" align="center" className="p-2 gap-2 flex bg-card/80 backdrop-blur-xl border-border rounded-2xl mb-4">
+                        {['❤️', '👏', '🎉', '😂', '😮', '😢', '👍', '🔥'].map((emoji) => (
+                            <Button
+                                key={emoji}
+                                variant="ghost"
+                                className="h-12 w-12 text-2xl p-0 hover:bg-white/10 rounded-xl"
+                                onClick={() => sendEmoji(emoji)}
+                            >
+                                {emoji}
+                            </Button>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+
+            <div className="w-px h-10 bg-border/50 hidden md:block" />
+
+            {/* Language Selection - Globe style */}
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                     <Button
-                        variant="ghost"
+                        variant={selectedLang === 'original' ? "secondary" : "default"}
                         size="icon"
                         className={cn(
-                            "h-11 w-11 rounded-xl transition-all",
-                            activeSidebar === 'participants' ? 'bg-[#06b6d4] text-white shadow-lg' : 'text-muted-foreground hover:bg-accent'
+                            "h-14 w-14 rounded-2xl shadow-xl transition-all active:scale-95 border-0",
+                            selectedLang !== 'original' ? "bg-[#06b6d4] text-white hover:bg-[#0891b2]" : "bg-accent/50 text-foreground hover:bg-accent"
                         )}
-                        onClick={() => setActiveSidebar(activeSidebar === 'participants' ? null : 'participants')}
+                        title={t('room.meeting_language')}
                     >
-                        <Users className="h-5 w-5" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                            "h-11 w-11 rounded-xl transition-all relative",
-                            activeSidebar === 'chat' ? 'bg-[#06b6d4] text-white shadow-lg' : 'text-muted-foreground hover:bg-accent'
-                        )}
-                        onClick={() => {
-                            if (activeSidebar === 'chat') {
-                                setActiveSidebar(null)
-                            } else {
-                                setActiveSidebar('chat')
-                                markAsRead()
-                            }
-                        }}
-                    >
-                        <MessageSquare className="h-5 w-5" />
-                        {unreadCount > 0 && activeSidebar !== 'chat' && (
+                        <Globe className="h-6 w-6" />
+                        {selectedLang !== 'original' && (
                             <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[9px] font-bold text-white items-center justify-center">
-                                    {unreadCount}
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-4 w-4 bg-cyan-500 border border-white dark:border-black text-[8px] items-center justify-center font-bold">
+                                    {selectedLang.toUpperCase()}
                                 </span>
                             </span>
                         )}
                     </Button>
-                </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="end" className="w-56 max-h-[70vh] overflow-y-auto mb-4 rounded-2xl bg-card border-border p-2 shadow-2xl custom-scrollbar">
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5 font-bold">{t('room.listening_language')}</DropdownMenuLabel>
+                    {ROOM_LANGUAGES.map((lang) => (
+                        <DropdownMenuItem
+                            key={lang.code}
+                            onClick={() => handleLangChange(lang.code)}
+                            className={cn(
+                                "rounded-xl p-3 flex items-center justify-between cursor-pointer",
+                                selectedLang === lang.code && "bg-[#06b6d4]/20 text-[#06b6d4]"
+                            )}
+                        >
+                            <div className="flex items-center gap-3">
+                                <span className="text-lg">{lang.flag}</span>
+                                <span className="font-semibold">{lang.name}</span>
+                            </div>
+                            {selectedLang === lang.code && <div className="h-2 w-2 rounded-full bg-[#06b6d4]" />}
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
 
+            {selectedLang !== 'original' && (
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="fixed bottom-32 right-10 bg-card/80 backdrop-blur-3xl p-8 rounded-[3rem] border border-border w-64 shadow-2xl z-[50]"
+                >
+                    <div className="flex justify-between text-[10px] uppercase font-black tracking-[0.2em] text-[#06b6d4] mb-4">
+                        <span>{t('room.floor')}</span>
+                        <span>{t('room.interpreter')}</span>
+                    </div>
+                    <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={volumeBalance}
+                        onChange={(e) => setVolumeBalance(Number(e.target.value))}
+                        className="w-full h-2 bg-accent/30 rounded-full appearance-none cursor-pointer accent-[#06b6d4]"
+                    />
+                    <div className="text-center text-[10px] text-muted-foreground mt-4 font-black tracking-widest uppercase">
+                        {t('room.audio_mix')}: {100 - volumeBalance}% / {volumeBalance}%
+                    </div>
+                </motion.div>
+            )}
+
+            <div className="w-px h-10 bg-border/50 hidden md:block" />
+
+            {currentRole === 'interpreter' && (
                 <Button
-                    variant="destructive"
-                    size="lg"
-                    className="h-14 px-8 rounded-2xl font-black shadow-xl shadow-red-900/20 active:scale-95 border-0 bg-red-500 hover:bg-red-600"
-                    onClick={async () => {
-                        if (currentRole === 'interpreter') {
-                            // Interpreters just leave
-                            const supabase = createClient()
-                            await supabase.auth.signOut() // Optional: sign out if guest? 
-                            window.location.href = '/dashboard'
-                            return
-                        }
+                    variant="default"
+                    className="h-14 px-8 rounded-2xl font-black border-2 transition-all active:scale-95 bg-purple-600 hover:bg-purple-700 border-purple-500 shadow-[0_0_30px_rgba(147,51,234,0.4)] text-white"
+                    onClick={() => {
+                        // Already an interpreter, but maybe the button toggles the broadcast lang or panel
+                        // For now keep it as is or change to toggle controls
+                    }}
+                >
+                    <Mic className="h-5 w-5 mr-3" />
+                    {t('room.mode_interpreter')}
+                </Button>
+            )}
 
-                        // Check if host
-                        if (isHost) {
-                            if (confirm(t('room.host_leave_confirm'))) {
-                                await endMeeting(roomId)
-                                window.location.href = '/dashboard'
-                            }
+            <div className="flex bg-accent/20 rounded-2xl p-1.5 border border-border">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                        "h-11 w-11 rounded-xl transition-all",
+                        activeSidebar === 'participants' ? 'bg-[#06b6d4] text-white shadow-lg' : 'text-muted-foreground hover:bg-accent'
+                    )}
+                    onClick={() => setActiveSidebar(activeSidebar === 'participants' ? null : 'participants')}
+                >
+                    <Users className="h-5 w-5" />
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                        "h-11 w-11 rounded-xl transition-all relative",
+                        activeSidebar === 'chat' ? 'bg-[#06b6d4] text-white shadow-lg' : 'text-muted-foreground hover:bg-accent'
+                    )}
+                    onClick={() => {
+                        if (activeSidebar === 'chat') {
+                            setActiveSidebar(null)
                         } else {
-                            window.location.href = '/dashboard'
+                            setActiveSidebar('chat')
+                            markAsRead()
                         }
                     }}
                 >
-                    <PhoneOff className="h-5 w-5 mr-3" /> {t('room.leave')}
+                    <MessageSquare className="h-5 w-5" />
+                    {unreadCount > 0 && activeSidebar !== 'chat' && (
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[9px] font-bold text-white items-center justify-center">
+                                {unreadCount}
+                            </span>
+                        </span>
+                    )}
                 </Button>
             </div>
 
-            {/* Floating Reactions Overlay */}
-            <FloatingReactions reactions={reactions} />
+            <Button
+                variant="destructive"
+                size="lg"
+                className="h-14 px-8 rounded-2xl font-black shadow-xl shadow-red-900/20 active:scale-95 border-0 bg-red-500 hover:bg-red-600"
+                onClick={async () => {
+                    if (currentRole === 'interpreter') {
+                        // Interpreters just leave
+                        const supabase = createClient()
+                        await supabase.auth.signOut() // Optional: sign out if guest? 
+                        window.location.href = '/dashboard'
+                        return
+                    }
+
+                    // Check if host
+                    if (isHost) {
+                        if (confirm(t('room.host_leave_confirm'))) {
+                            await endMeeting(roomId)
+                            window.location.href = '/dashboard'
+                        }
+                    } else {
+                        window.location.href = '/dashboard'
+                    }
+                }}
+            >
+                <PhoneOff className="h-5 w-5 mr-3" /> {t('room.leave')}
+            </Button>
         </div>
-    )
+
+        {/* Floating Reactions Overlay */}
+        <FloatingReactions reactions={reactions} />
+    </div>
+)
 }
