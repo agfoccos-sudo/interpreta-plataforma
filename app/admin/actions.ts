@@ -44,12 +44,21 @@ export async function updateUserStatus(userId: string, status: 'active' | 'suspe
 
         const { data: oldProfile } = await supabase.from('profiles').select('status').eq('id', userId).single()
 
+        // Sync active boolean with status text to satisfy potential legacy triggers/logic
+        const isActive = status === 'active'
+
         const { error } = await supabase
             .from('profiles')
-            .update({ status })
+            .update({
+                status: status,
+                active: isActive
+            })
             .eq('id', userId)
 
-        if (error) return { success: false, error: error.message }
+        if (error) {
+            console.error('Error updating user status:', error)
+            return { success: false, error: error.message }
+        }
 
         const actionMap: Record<string, 'USER_UNBAN' | 'USER_SUSPEND' | 'USER_BAN'> = {
             'active': 'USER_UNBAN',
