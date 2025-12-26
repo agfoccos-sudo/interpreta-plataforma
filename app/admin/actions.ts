@@ -489,17 +489,28 @@ export async function createAnnouncement(formData: FormData) {
                 title,
                 content,
                 created_by: user.id
-            // ... existing createAnnouncement
+            })
+
+        if (error) return { success: false, error: error.message }
+
+        revalidatePath('/dashboard/messages') // Update user view
+        revalidatePath('/admin/messages') // Update admin view
+
+        return { success: true }
+    } catch (e: any) {
+        return { success: false, error: e.message }
+    }
+}
 
 export async function deleteAnnouncement(id: string) {
-                try {
-                    const supabase = await createClient()
+    try {
+        const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
 
-        if(!user) return { success: false, error: 'Unauthorized' }
+        if (!user) return { success: false, error: 'Unauthorized' }
 
         const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-        if(profile?.role !== 'admin') return { success: false, error: 'Unauthorized' }
+        if (profile?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
         const supabaseAdmin = await ensureAdminClient()
         const { error } = await supabaseAdmin.from('announcements').delete().eq('id', id)
@@ -513,15 +524,4 @@ export async function deleteAnnouncement(id: string) {
     } catch (e: any) {
         return { success: false, error: e.message }
     }
-})
-
-if (error) return { success: false, error: error.message }
-
-revalidatePath('/dashboard/messages') // Update user view
-revalidatePath('/admin/messages') // Update admin view
-
-return { success: true }
-    } catch (e: any) {
-    return { success: false, error: e.message }
-}
 }
