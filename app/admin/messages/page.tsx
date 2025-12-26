@@ -25,6 +25,18 @@ export default function AdminMessagesPage() {
         fetchMessages()
     }, [loading])
 
+    async function handleSubmit(formData: FormData) {
+        setLoading(true)
+        const result = await createAnnouncement(formData)
+        if (!result.success) {
+            alert(result.error)
+        } else {
+            alert('Comunicado enviado com sucesso!')
+            // Reset loading to trigger refetch via useEffect
+        }
+        setLoading(false)
+    }
+
     async function handleDelete(id: string) {
         if (!confirm('Tem certeza que deseja excluir este aviso?')) return
 
