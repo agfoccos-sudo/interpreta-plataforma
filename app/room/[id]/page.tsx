@@ -98,6 +98,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                     .single()
 
                 if (profile) {
+                    console.log('Profile fetched:', profile)
                     setUserName(profile.full_name || profile.username || user.email?.split('@')[0] || t('room.participant_default'))
                     setCurrentRole(profile.role || 'participant')
                 }
@@ -146,13 +147,15 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                 }
 
                 // Check Meeting Interpreters (Item 1)
+                // Check Meeting Interpreters (Item 1)
                 if (meeting?.settings?.interpreters) {
+                    console.log('Checking interpreters', meeting.settings.interpreters, user.email)
                     const interpreterConfig = meeting.settings.interpreters.find(
-                        (i: any) => i.email.toLowerCase() === user.email?.toLowerCase()
+                        (i: any) => i.email?.toLowerCase() === user.email?.toLowerCase()
                     )
 
                     if (interpreterConfig) {
-                        console.log(`User identified as pre-configured interpreter!`)
+                        console.log(`User identified as pre-configured interpreter!`, interpreterConfig)
                         setCurrentRole('interpreter')
                         // Support single 'lang' or array 'langs'
                         if (interpreterConfig.lang) {
@@ -163,7 +166,11 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             setAssignedLanguages(interpreterConfig.langs)
                             setMyBroadcastLang(interpreterConfig.langs[0])
                         }
+                    } else {
+                        console.log('User NOT found in interpreter list')
                     }
+                } else {
+                    console.log('No interpreters configured for this meeting')
                 }
 
                 if (meeting?.settings?.active_languages) {
@@ -650,6 +657,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
             {/* Interpreter Console (Central Cockpit) */}
             {/* Interpreter Console (Unified Strip) */}
             {/* Interpreter Console (Central Cockpit) */}
+            {/* Interpreter Console (Central Cockpit) */}
+            {console.log('Render: currentRole', currentRole, 'Should show console?', (currentRole.toLowerCase().includes('interpreter') || currentRole.toLowerCase().includes('admin')))}
             {(currentRole.toLowerCase().includes('interpreter') || currentRole.toLowerCase().includes('admin')) && (
                 <>
                     <InterpreterSetupModal
