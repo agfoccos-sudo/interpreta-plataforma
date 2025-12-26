@@ -22,7 +22,7 @@ export async function updateUserRole(userId: string, newRole: string) {
         // Get previous role for logging
         const { data: oldProfile } = await supabase.from('profiles').select('role').eq('id', userId).single()
 
-        const supabaseAdmin = await createAdminClient()
+        const supabaseAdmin = await ensureAdminClient()
 
         const { error } = await supabaseAdmin
             .from('profiles')
@@ -54,7 +54,7 @@ export async function updateUserStatus(userId: string, status: 'active' | 'suspe
 
         const { data: oldProfile } = await supabase.from('profiles').select('status').eq('id', userId).single()
 
-        const supabaseAdmin = await createAdminClient()
+        const supabaseAdmin = await ensureAdminClient()
 
         const { error } = await supabaseAdmin
             .from('profiles')
@@ -96,7 +96,7 @@ export async function deleteUser(userId: string) {
         const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
         if (profile?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
-        const supabaseAdmin = await createAdminClient()
+        const supabaseAdmin = await ensureAdminClient()
 
         // 1. Manual cleanup of Storage (Avatars) - Files owned by user prevent tidy cleanup if not removed
         const { data: userFiles } = await supabaseAdmin.storage.from('avatars').list('', {
@@ -145,7 +145,7 @@ export async function deleteUser(userId: string) {
 export async function updateUserLimits(userId: string, limits: Record<string, unknown>) {
     try {
         const supabase = await createClient()
-        const supabaseAdmin = await createAdminClient()
+        const supabaseAdmin = await ensureAdminClient()
         const { error } = await supabaseAdmin
             .from('profiles')
             .update({ limits })
@@ -175,7 +175,7 @@ export async function updateProfileLanguages(userId: string, languages: string[]
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { success: false, error: 'Unauthorized' }
 
-        const supabaseAdmin = await createAdminClient()
+        const supabaseAdmin = await ensureAdminClient()
         const { error } = await supabaseAdmin
             .from('profiles')
             .update({ languages })
@@ -232,7 +232,7 @@ export async function createUser(formData: FormData) {
         }
 
         // 3. Create user using Admin Client (Bypass email confirmation)
-        const supabaseAdmin = await createAdminClient()
+        const supabaseAdmin = await ensureAdminClient()
 
         // We assume the DB constraint has been updated to allow 'interpreter'
         // If not, this might fail or trigger needs update. 
@@ -316,7 +316,7 @@ export async function cleanupExpiredMeetings() {
         const twoHoursAgo = new Date(Date.now() - 120 * 60 * 1000).toISOString()
 
         // Use Admin Client to bypass RLS for mass cleanup
-        const supabaseAdmin = await createAdminClient()
+        const supabaseAdmin = await ensureAdminClient()
 
         // Update active meetings that started more than 2 hours ago
         const { data, error, count } = await supabaseAdmin
@@ -361,7 +361,7 @@ export async function killAllActiveMeetings() {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return { success: false, error: 'Chave de Serviço ausente.' }
 
     try {
-        const supabaseAdmin = await createAdminClient()
+        const supabaseAdmin = await ensureAdminClient()
 
         const { data, error, count } = await supabaseAdmin
             .from('meetings')
@@ -404,7 +404,7 @@ export async function createAnnouncement(formData: FormData) {
 
         if (!title || !content) return { success: false, error: 'Campos obrigatórios' }
 
-        const supabaseAdmin = await createAdminClient()
+        const supabaseAdmin = await ensureAdminClient()
         const { error } = await supabaseAdmin
             .from('announcements')
             .insert({
