@@ -1,29 +1,44 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { AlertCircle, Loader2, Zap } from 'lucide-react'
 import { Logo } from '@/components/logo'
 
-export default function LoginPage() {
+function LoginForm() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
-    // const supabase = createClient() // Commented out to isolate cause
+    const searchParams = useSearchParams()
+
+    useEffect(() => {
+        const errorType = searchParams.get('error')
+        const status = searchParams.get('status')
+
+        if (errorType === 'account_locked') {
+            if (status === 'banned') {
+                setError('Sua conta foi banida permanentemente. Entre em contato com o suporte.')
+            } else if (status === 'suspended') {
+                setError('Sua conta está suspensa temporariamente. Entre em contato com o suporte.')
+            } else {
+                setError('Acesso negado. Sua conta não está ativa.')
+            }
+        }
+    }, [searchParams])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
         setError(null)
 
-        const supabase = createClient() // Lazy load
+        const supabase = createClient()
 
         const { error } = await supabase.auth.signInWithPassword({
             email,
@@ -31,7 +46,7 @@ export default function LoginPage() {
         })
 
         if (error) {
-            setError(error.message)
+            setError(error.message === 'Invalid login credentials' ? 'Email ou senha incorretos.' : error.message)
             setLoading(false)
         } else {
             router.push('/dashboard')
@@ -85,9 +100,9 @@ export default function LoginPage() {
                     </div>
 
                     {error && (
-                        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 flex items-center gap-2 text-red-500 text-sm">
-                            <AlertCircle className="h-4 w-4" />
-                            {error}
+                        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 flex items-center gap-2 text-red-500 text-sm animate-in fade-in slide-in-from-top-1">
+                            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                            <span>{error}</span>
                         </div>
                     )}
 
@@ -100,10 +115,22 @@ export default function LoginPage() {
                     </Button>
                 </form>
 
-                <p className="text-xs text-gray-500 mt-4">
+                <p className="text-xs text-gray-500 mt-4 text-center">
                     Não possui conta? Entre em contato com nosso time comercial.
                 </p>
             </div>
         </div>
+    )
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-[#020817]">
+                <Loader2 className="h-8 w-8 text-[#06b6d4] animate-spin" />
+            </div>
+        }>
+            <LoginForm />
+        </Suspense>
     )
 }
