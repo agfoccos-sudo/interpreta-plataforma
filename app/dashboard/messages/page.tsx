@@ -3,9 +3,18 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Megaphone, Bell } from 'lucide-react'
-import { format } from 'date-fns'
+import { Megaphone, Bell, Zap, Wrench, Info, Star, Calendar } from 'lucide-react'
+import { format, differenceInDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { Badge } from '@/components/ui/badge'
+
+const getIconForTitle = (title: string) => {
+    const t = title.toLowerCase()
+    if (t.includes('atualização') || t.includes('novidade') || t.includes('2.0')) return <Zap className="h-5 w-5 text-amber-500" />
+    if (t.includes('manutenção') || t.includes('correção')) return <Wrench className="h-5 w-5 text-blue-500" />
+    if (t.includes('importante') || t.includes('aviso')) return <Star className="h-5 w-5 text-red-500" />
+    return <Info className="h-5 w-5 text-cyan-500" />
+}
 
 export default function MessagesPage() {
     const [messages, setMessages] = useState<any[]>([])
@@ -14,7 +23,6 @@ export default function MessagesPage() {
     useEffect(() => {
         const loadMessages = async () => {
             const supabase = createClient()
-            // Fetch messages
             const { data } = await supabase
                 .from('announcements')
                 .select('*')
@@ -29,53 +37,95 @@ export default function MessagesPage() {
                     last_read_announcements_at: new Date().toISOString()
                 }).eq('id', user.id)
             }
-
             setLoading(false)
         }
         loadMessages()
     }, [])
 
-    if (loading) return <div className="p-8 text-center text-muted-foreground">Carregando avisos...</div>
+    if (loading) return (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <p className="text-muted-foreground animate-pulse">Carregando quadro de avisos...</p>
+        </div>
+    )
 
     return (
-        <div className="p-8 max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700">
-            <div className="flex items-center gap-4 mb-8">
-                <div className="p-4 bg-yellow-500/10 rounded-2xl">
-                    <Megaphone className="h-8 w-8 text-yellow-500" />
+        <div className="p-8 max-w-5xl mx-auto space-y-10 animate-in fade-in duration-700 min-h-screen">
+            {/* Header Hero */}
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-600 p-10 shadow-2xl">
+                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6">
+                    <div className="p-4 bg-white/20 backdrop-blur-md rounded-2xl shadow-inner border border-white/10">
+                        <Megaphone className="h-10 w-10 text-white fill-white/20" />
+                    </div>
+                    <div>
+                        <h1 className="text-4xl font-black tracking-tighter text-white mb-2">Quadro de Avisos</h1>
+                        <p className="text-blue-100/80 text-lg font-medium max-w-xl">
+                            Fique por dentro das últimas melhorias, novidades e atualizações oficiais da plataforma.
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="text-3xl font-black tracking-tight text-foreground">Quadro de Avisos</h1>
-                    <p className="text-muted-foreground">Fique por dentro das novidades e atualizações oficiais.</p>
-                </div>
+                {/* Decorative Circles */}
+                <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/3 w-96 h-96 bg-blue-400/30 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/3 w-64 h-64 bg-purple-400/30 rounded-full blur-3xl" />
             </div>
 
-            <div className="space-y-4">
+            <div className="grid gap-6">
                 {messages.length === 0 ? (
-                    <div className="text-center py-20 bg-card rounded-[2rem] border border-border">
-                        <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-                        <p className="text-muted-foreground font-medium">Nenhum comunicado recente.</p>
+                    <div className="text-center py-32 bg-card rounded-[2.5rem] border border-dashed border-border/60">
+                        <div className="bg-accent/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Bell className="h-10 w-10 text-muted-foreground opacity-40" />
+                        </div>
+                        <h3 className="text-xl font-bold text-foreground mb-2">Tudo tranquilo por aqui</h3>
+                        <p className="text-muted-foreground font-medium max-w-sm mx-auto">Nenhum comunicado recente foi postado. Aproveite para explorar outras áreas!</p>
                     </div>
                 ) : (
-                    messages.map((msg) => (
-                        <Card key={msg.id} className="bg-card border-border overflow-hidden hover:border-[#06b6d4]/50 transition-colors group">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-[#06b6d4] opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <CardHeader className="pb-2">
-                                <div className="flex justify-between items-start">
-                                    <CardTitle className="text-xl font-bold flex items-center gap-2">
-                                        {msg.title}
-                                    </CardTitle>
-                                    <span className="text-xs font-mono text-muted-foreground bg-accent/50 px-2 py-1 rounded">
-                                        {format(new Date(msg.created_at), "d 'de' MMMM", { locale: ptBR })}
-                                    </span>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                                    {msg.content}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ))
+                    messages.map((msg, index) => {
+                        const isNew = differenceInDays(new Date(), new Date(msg.created_at)) <= 3
+
+                        return (
+                            <Card
+                                key={msg.id}
+                                className="group bg-card dark:bg-slate-900/50 border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 overflow-hidden backdrop-blur-sm"
+                                style={{ animationDelay: `${index * 100}ms` }}
+                            >
+                                <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-transparent via-primary/50 to-transparent opacity-50 group-hover:opacity-100 transition-opacity" />
+
+                                <CardHeader className="pb-4">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div className="flex items-start gap-4">
+                                            <div className="p-3 bg-accent/50 rounded-xl group-hover:bg-primary/10 transition-colors mt-1 md:mt-0">
+                                                {getIconForTitle(msg.title)}
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-3 flex-wrap">
+                                                    <CardTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 group-hover:to-primary transition-all">
+                                                        {msg.title}
+                                                    </CardTitle>
+                                                    {isNew && (
+                                                        <Badge variant="default" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-[10px] font-bold px-2 py-0.5 shadow-lg shadow-orange-500/20 animate-pulse">
+                                                            NOVO
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                                                    <Calendar className="h-3 w-3" />
+                                                    {format(new Date(msg.created_at), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+
+                                <CardContent className="pl-[5.5rem] pr-8 pb-8 pt-0">
+                                    <div className="prose dark:prose-invert max-w-none text-muted-foreground/90 leading-relaxed text-sm md:text-base border-l-2 border-border/50 pl-6">
+                                        <p className="whitespace-pre-wrap font-sans">
+                                            {msg.content}
+                                        </p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )
+                    })
                 )}
             </div>
         </div>
