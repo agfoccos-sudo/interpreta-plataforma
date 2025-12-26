@@ -66,6 +66,41 @@ export async function updateUserRole(userId: string, newRole: string) {
     }
 }
 
+export async function adminUpdateUserPassword(userId: string, newPassword: string) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, error: 'Unauthorized' }
+
+        // Verify Admin
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        if (profile?.role !== 'admin') return { success: false, error: 'Unauthorized' }
+
+        if (!newPassword || newPassword.length < 6) {
+            return { success: false, error: 'A senha deve ter pelo menos 6 caracteres.' }
+        }
+
+        const supabaseAdmin = await ensureAdminClient()
+
+        const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+            password: newPassword
+        })
+
+        if (error) return { success: false, error: error.message }
+
+        await logAdminAction({
+            action: 'USER_PASSWORD_RESET',
+            targetResource: 'user',
+            targetId: userId,
+            details: { method: 'admin_reset' }
+        })
+
+        return { success: true }
+    } catch (err: any) {
+        return { success: false, error: err.message }
+    }
+}
+
 export async function updateUserStatus(userId: string, status: 'active' | 'suspended' | 'banned', reason?: string) {
     try {
         const supabase = await createClient()
