@@ -268,6 +268,7 @@ export function useWebRTC(
                 setLocalStream(stream)
                 originalMicTrackRef.current = stream.getAudioTracks()[0]
                 currentAudioTrackRef.current = stream.getAudioTracks()[0]
+                const { data: meeting } = await supabase.from('meetings').select('host_id').eq('id', roomId).single()
                 if (meeting?.host_id && mounted) {
                     setHostId(meeting.host_id)
                     metadataRef.current.isHost = meeting.host_id === userId
