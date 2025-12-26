@@ -4,6 +4,14 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAdminAction } from '@/lib/admin-logger'
 
+async function ensureAdminClient() {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.error('CRITICAL: SUPABASE_SERVICE_ROLE_KEY is missing via process.env')
+        throw new Error('Configuração: Chave de Serviço (Service Role) ausente no servidor.')
+    }
+    return createAdminClient()
+}
+
 export async function updateUserRole(userId: string, newRole: string) {
     try {
         const supabase = await createClient()
