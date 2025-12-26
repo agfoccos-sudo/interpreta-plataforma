@@ -28,24 +28,6 @@ ALTER TABLE public.meetings
     REFERENCES public.profiles(id)
     ON DELETE CASCADE;
 
--- 4. MEETING_PARTICIPANTS (user_id and meeting_id)
--- We need to check the exact constraint names, but we'll try standard naming or recreate.
--- Assuming table exists (it's used in code), but we didn't see the CREATE statement.
--- We'll use DO block to be safe if table names vary, but here we assume standard Supabase naming.
-
-ALTER TABLE public.meeting_participants DROP CONSTRAINT IF EXISTS meeting_participants_user_id_fkey;
-ALTER TABLE public.meeting_participants
-    ADD CONSTRAINT meeting_participants_user_id_fkey
-    FOREIGN KEY (user_id)
-    REFERENCES public.profiles(id)
-    ON DELETE CASCADE;
-
-ALTER TABLE public.meeting_participants DROP CONSTRAINT IF EXISTS meeting_participants_meeting_id_fkey;
-ALTER TABLE public.meeting_participants
-    ADD CONSTRAINT meeting_participants_meeting_id_fkey
-    FOREIGN KEY (meeting_id)
-    REFERENCES public.meetings(id)
-    ON DELETE CASCADE;
 
 -- 5. INTERPRETER_ASSIGNMENTS (user_id and meeting_id)
 ALTER TABLE public.interpreter_assignments DROP CONSTRAINT IF EXISTS interpreter_assignments_user_id_fkey;
