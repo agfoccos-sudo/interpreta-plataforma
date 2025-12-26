@@ -1,5 +1,5 @@
-
 import { Sidebar } from '@/components/sidebar'
+import { MobileNav } from '@/components/mobile-nav'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
@@ -62,8 +62,18 @@ export default async function DashboardLayout({
     }
 
     return (
-        <div className="h-full relative bg-[#020817] text-white">
-            <div className="hidden h-full md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80]">
+        <div className="h-screen flex flex-col md:flex-row overflow-hidden bg-background text-foreground transition-colors duration-300">
+            {/* Mobile Header / Nav */}
+            <MobileNav
+                user={user}
+                userRole={role}
+                userAvatar={avatar}
+                userName={fullName || user.user_metadata?.full_name || user.email?.split('@')[0]}
+                unreadMessagesCount={unreadCount || 0}
+            />
+
+            {/* Desktop Sidebar */}
+            <div className="hidden md:flex h-full w-72 flex-col fixed inset-y-0 z-[80]">
                 <Sidebar
                     user={user}
                     userRole={role}
@@ -72,8 +82,12 @@ export default async function DashboardLayout({
                     unreadMessagesCount={unreadCount || 0}
                 />
             </div>
-            <main className="md:pl-72 h-full">
-                {children}
+
+            {/* Main Content */}
+            <main className="flex-1 md:pl-72 h-full overflow-y-auto relative">
+                <div className="h-full">
+                    {children}
+                </div>
             </main>
         </div>
     )

@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import SettingsForm from '@/components/settings-form'
 
-export default async function SettingsPage() {
+export default async function SettingsPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+    const searchParams = await props.searchParams
+    const tab = (searchParams.tab as string) || 'profile'
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -20,7 +22,7 @@ export default async function SettingsPage() {
                 <p className="text-muted-foreground mt-1">Personalize sua identidade e preferências globais.</p>
             </div>
 
-            <SettingsForm user={user} profile={profile} />
+            <SettingsForm user={user} profile={profile} defaultTab={tab} />
         </div>
     )
 }

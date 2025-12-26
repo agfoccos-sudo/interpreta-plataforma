@@ -58,12 +58,6 @@ export function Sidebar({ user, userRole, userAvatar, userName, unreadMessagesCo
             icon: Settings,
             href: '/dashboard/settings',
         },
-        // Added Security Link as requested
-        {
-            label: 'Segurança',
-            icon: Shield,
-            href: '/dashboard/settings?tab=security',
-        },
         // Added Help Link
         {
             label: 'Ajuda',
@@ -106,10 +100,10 @@ export function Sidebar({ user, userRole, userAvatar, userName, unreadMessagesCo
     ]
 
     return (
-        <div className="flex flex-col h-full bg-card border-r border-border dark:bg-gradient-to-b dark:from-[#1e3a8a] dark:to-[#0f172a] dark:border-none shadow-2xl transition-colors duration-300">
+        <div className="flex flex-col h-full bg-card border-r border-border dark:bg-gradient-to-b dark:from-[#1e3a8a] dark:to-[#0f172a] shadow-xl transition-all duration-300">
             {/* Branding Header */}
             <div className="flex items-center justify-center p-6 pb-2">
-                <Logo className="scale-125" />
+                <Logo className="scale-125 transition-transform hover:scale-130 duration-300" />
             </div>
 
             <div className="text-center text-[10px] text-muted-foreground dark:text-blue-200/50 uppercase tracking-[0.3em] font-bold mb-6">

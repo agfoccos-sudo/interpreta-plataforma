@@ -16,18 +16,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 interface SettingsFormProps {
     user: any
     profile: any
+    defaultTab?: string
 }
 
-export default function SettingsForm({ user, profile }: SettingsFormProps) {
+export default function SettingsForm({ user, profile, defaultTab = 'profile' }: SettingsFormProps) {
     const router = useRouter()
-    const searchParams = useSearchParams()
     const [loading, setLoading] = useState(false)
-    const [activeTab, setActiveTab] = useState('profile')
+    const [activeTab, setActiveTab] = useState(defaultTab)
 
     useEffect(() => {
-        const tab = searchParams.get('tab')
-        if (tab) setActiveTab(tab)
-    }, [searchParams])
+        if (defaultTab) setActiveTab(defaultTab)
+    }, [defaultTab])
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
@@ -152,7 +151,7 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
                                     <div className="relative">
                                         <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-primary transition-colors" />
                                         <Input
-                                            id=" jobTitle"
+                                            id="jobTitle"
                                             name="jobTitle"
                                             defaultValue={profile?.job_title || ''}
                                             className="bg-slate-950/50 border-slate-800/50 text-foreground h-14 rounded-2xl pl-12 focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all duration-300 font-medium"
