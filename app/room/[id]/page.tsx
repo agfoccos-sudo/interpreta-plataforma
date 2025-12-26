@@ -240,7 +240,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         promoteToHost,
         kickUser,
         updateUserRole,
-        updateUserLanguages
+        updateUserLanguages,
+        reconnect // NEW
     } = useWebRTC(roomId, userId, currentRole, lobbyConfig || {}, isJoined, userName)
 
     const isGuest = userId.startsWith('guest-')
@@ -482,6 +483,21 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             </Button>
                         }
                     />
+
+                    {/* Reconnect Button - Visible only if joined */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                            if (confirm('Deseja reconectar à sala? Isso pode resolver problemas de áudio/vídeo.')) {
+                                reconnect()
+                            }
+                        }}
+                        className="h-6 w-6 ml-1 text-white hover:bg-red-500/20 rounded-full"
+                        title="Reconectar"
+                    >
+                        <Settings className="h-3 w-3 text-red-400" />
+                    </Button>
 
                     <div className={`px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1 ${userCount > 1 ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/50'}`}>
                         <Users className="h-3 w-3" />

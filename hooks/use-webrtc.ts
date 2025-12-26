@@ -120,15 +120,10 @@ export function useWebRTC(
         })
         peer.on('connect', () => { updatePeerData(targetUserId, { connectionState: 'connected' }) })
         peer.on('stream', (remoteStream) => { updatePeerData(targetUserId, { stream: remoteStream, connectionState: 'connected' }) })
-        peer.on('track', (track, stream) => {
-            if (track.kind === 'video') {
-                const videoTracks = stream.getVideoTracks()
-                if (videoTracks.length > 1 && track.id === videoTracks[videoTracks.length - 1].id) {
-                    const presentationId = `${targetUserId}-presentation`
-                    peersRef.current.set(presentationId, { peer, stream: new MediaStream([track]), userId: presentationId, role: 'presentation', name: `Apresentação`, isPresentation: true, parentUserId: targetUserId, connectionState: 'connected' })
-                    syncToState()
-                }
-            }
+        peer.on('error', (err) => {
+            console.error(`Peer error with ${targetUserId}:`, err)
+            // cleanup will be handled by 'close' event usually, but force destroy just in case
+            peer.destroy()
         })
         peer.on('close', () => {
             const p = peersRef.current.get(targetUserId)
@@ -146,17 +141,25 @@ export function useWebRTC(
         }
     }
 
-    const joinChannel = (stream: MediaStream | null) => {
-        if (channelRef.current) return
+    const joinChannel = useCallback((stream: MediaStream | null) => {
+        if (channelRef.current) {
+            channelRef.current.unsubscribe()
+        }
+
+        console.log("Joining Supabase Channel:", roomId)
         const newChannel = supabase.channel(`room:${roomId}`, { config: { presence: { key: userId } } })
         channelRef.current = newChannel
         setChannelState(newChannel)
+
         newChannel
             .on('broadcast', { event: 'signal' }, (event) => {
                 const { sender, signal, target, role: r, name: n } = event.payload
                 if (target !== userId) return
                 const existing = peersRef.current.get(sender)
-                if (existing) { existing.lastSignalTime = Date.now(); existing.peer.signal(signal) }
+                if (existing) {
+                    existing.lastSignalTime = Date.now();
+                    if (existing.peer && !existing.peer.destroyed) existing.peer.signal(signal)
+                }
                 else if (signal.type === 'offer') {
                     const newPeer = createPeer(sender, false, stream, r || 'participant', n || 'Participante')
                     newPeer?.signal(signal)
@@ -232,14 +235,18 @@ export function useWebRTC(
                 if (changed) syncToState()
             })
             .subscribe(async (status) => {
+                console.log("Supabase Channel Status:", status)
                 if (status === 'SUBSCRIBED') {
                     // Include host status in initial track if known
                     const isHost = hostId === userId || metadataRef.current.isHost
                     metadataRef.current = { ...metadataRef.current, isHost }
                     await newChannel.track(metadataRef.current)
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                    console.error("Supabase Channel Disconnected:", status)
+                    // Optional: Trigger UI warning
                 }
             })
-    }
+    }, [roomId, userId, userRole, userName, hostId])
 
     useEffect(() => {
         let mounted = true
@@ -560,6 +567,19 @@ export function useWebRTC(
         channelRef.current?.send({ type: 'broadcast', event: 'admin-action', payload: { action: 'set-allowed-languages', targetId, payload: { languages } } })
     }
 
+    const reconnect = useCallback(() => {
+        console.log("Reiniciando conexão WebRTC...")
+        // Destroy all peers
+        peersRef.current.forEach(p => p.peer.destroy())
+        peersRef.current.clear()
+        syncToState()
+
+        // Re-join channel
+        if (localStream) {
+            joinChannel(localStream)
+        }
+    }, [joinChannel, localStream, syncToState])
+
     return {
         localStream,
         peers,
@@ -584,6 +604,7 @@ export function useWebRTC(
         reactions,
         localHandRaised,
         hostId,
-        isHost: hostId === userId
+        isHost: hostId === userId,
+        reconnect // NEW
     }
 }
