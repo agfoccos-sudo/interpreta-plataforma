@@ -103,12 +103,10 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                     }
 
                     if (profile) {
-                        console.log('Profile fetched:', profile)
                         setUserName(profile.full_name || profile.username || user?.user_metadata?.full_name || user.email?.split('@')[0] || t('room.participant_default'))
                         setCurrentRole(profile.role || user?.user_metadata?.role || 'participant')
                     } else {
                         // Fallback if profile fetch fails but user exists (shouldn't happen often but RLS might cause it)
-                        console.warn('Profile fetch failed or null. Using metadata.')
                         setUserName(user?.user_metadata?.full_name || user.email?.split('@')[0] || t('room.participant_default'))
                         setCurrentRole(user?.user_metadata?.role || 'participant')
                     }
@@ -130,7 +128,6 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                             if (expired) {
                                 // IF HOST, AUTO RESTART
                                 if (meeting.host_id === user.id) {
-                                    console.log('Host joined expired meeting. Restarting...')
                                     await restartPersonalMeeting(roomId)
                                     window.location.reload()
                                     return
@@ -144,7 +141,6 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                     } else if (meeting?.status === 'ended') {
                         // IF HOST, AUTO RESTART
                         if (meeting.host_id === user.id) {
-                            console.log('Host joined ended meeting. Restarting...')
                             await restartPersonalMeeting(roomId)
                             window.location.reload()
                             return
@@ -157,13 +153,11 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
                     // Check Meeting Interpreters (Item 1)
                     if (meeting?.settings?.interpreters) {
-                        console.log('Checking interpreters', meeting.settings.interpreters, user.email)
                         const interpreterConfig = meeting.settings.interpreters.find(
                             (i: any) => i.email?.toLowerCase() === user.email?.toLowerCase()
                         )
 
                         if (interpreterConfig) {
-                            console.log(`User identified as pre-configured interpreter!`, interpreterConfig)
                             setCurrentRole('interpreter')
                             // Support single 'lang' or array 'langs'
                             if (interpreterConfig.lang) {
@@ -174,11 +168,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 setAssignedLanguages(interpreterConfig.langs)
                                 setMyBroadcastLang(interpreterConfig.langs[0])
                             }
-                        } else {
-                            console.log('User NOT found in interpreter list')
                         }
-                    } else {
-                        console.log('No interpreters configured for this meeting')
                     }
 
                     if (meeting?.settings?.active_languages) {
@@ -473,23 +463,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
 
 
-    const DEBUG_MODE = true // Enable for user debugging
-
     return (
         <div className="h-screen bg-[#020817] flex flex-col relative overflow-hidden text-foreground transition-colors duration-500">
-            {/* DEBUG OVERLAY */}
-            {DEBUG_MODE && (
-                <div className="absolute bottom-4 left-4 z-[999] bg-black/80 text-green-400 p-2 text-[10px] font-mono rounded pointer-events-none opacity-50 hover:opacity-100 transition-opacity max-w-xs break-all">
-                    <p>Role: {currentRole}</p>
-                    <p>Name: {userName}</p>
-                    <p>ID: {userId.substring(0, 8)}...</p>
-                    <p>Lobby: {isJoined ? 'Joined' : 'Waiting'}</p>
-                    <p>Host: {isHost ? 'YES' : 'NO'}</p>
-                    <p>Langs: {assignedLanguages.join(',') || 'None'}</p>
-                    <p>Console: {(currentRole.toLowerCase().includes('interpreter') || currentRole.toLowerCase().includes('admin')) ? 'VISIBLE' : 'HIDDEN'}</p>
-                </div>
-            )}
-
             {/* Top Bar - Auto Hides */}
             <div className={`absolute top-0 left-0 right-0 p-4 z-[40] flex justify-between items-center transition-all duration-500 ${showUI ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10 pointer-events-none'}`}>
                 <div className="bg-card/40 backdrop-blur-md px-4 py-2 rounded-full pointer-events-auto border border-border flex items-center gap-4 shadow-xl">
@@ -696,7 +671,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
             {/* Interpreter Console (Unified Strip) */}
             {/* Interpreter Console (Central Cockpit) */}
             {/* Interpreter Console (Central Cockpit) */}
-            {(() => { console.log('Render: currentRole', currentRole, 'Should show console?', (currentRole.toLowerCase().includes('interpreter') || currentRole.toLowerCase().includes('admin'))); return null; })()}
+
             {(currentRole.toLowerCase().includes('interpreter') || currentRole.toLowerCase().includes('admin')) && (
                 <>
                     <InterpreterSetupModal
