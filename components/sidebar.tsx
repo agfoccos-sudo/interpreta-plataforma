@@ -13,7 +13,8 @@ import {
     Video,
     BarChart3,
     MessageSquare,
-    Megaphone
+    Megaphone,
+    Activity
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ModeToggle } from './mode-toggle'
