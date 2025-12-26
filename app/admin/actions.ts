@@ -46,15 +46,11 @@ export async function updateUserStatus(userId: string, status: 'active' | 'suspe
 
         const { data: oldProfile } = await supabase.from('profiles').select('status').eq('id', userId).single()
 
-        // Sync active boolean with status text to satisfy potential legacy triggers/logic
-        const isActive = status === 'active'
+        const supabaseAdmin = await createAdminClient()
 
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
             .from('profiles')
-            .update({
-                status: status,
-                active: isActive
-            })
+            .update({ status })
             .eq('id', userId)
 
         if (error) {
