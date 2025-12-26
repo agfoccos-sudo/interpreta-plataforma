@@ -17,6 +17,7 @@ export type AdminAction =
     | 'USER_INVITE'
     | 'MEETING_KILL'
     | 'MEETING_KILL_ALL'
+    | 'USER_PASSWORD_RESET'
 
 interface LogParams {
     action: AdminAction
