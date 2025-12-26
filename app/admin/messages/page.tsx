@@ -10,6 +10,7 @@ import { Megaphone, Plus, Trash2, Send } from 'lucide-react'
 import { createAnnouncement } from '@/app/admin/actions'
 import { createClient } from '@/lib/supabase/client'
 import { useEffect } from 'react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export default function AdminMessagesPage() {
     const [loading, setLoading] = useState(false)
@@ -53,6 +54,20 @@ export default function AdminMessagesPage() {
                     </CardHeader>
                     <CardContent>
                         <form action={handleSubmit} className="space-y-4">
+                            <div className="space-y-2">
+                                <Label className="text-card-foreground">Tipo de Aviso</Label>
+                                <Select name="type" defaultValue="info" required>
+                                    <SelectTrigger className="bg-background border-input text-foreground">
+                                        <SelectValue placeholder="Selecione o tipo" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="update">🚀 Novidade / Atualização</SelectItem>
+                                        <SelectItem value="maintenance">🔧 Manutenção</SelectItem>
+                                        <SelectItem value="alert">⚠️ Alerta Importante</SelectItem>
+                                        <SelectItem value="info">ℹ️ Informação Geral</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                             <div className="space-y-2">
                                 <Label htmlFor="title" className="text-card-foreground">Título</Label>
                                 <Input name="title" id="title" placeholder="Ex: Manutenção Programada" className="bg-background border-input text-foreground" required />

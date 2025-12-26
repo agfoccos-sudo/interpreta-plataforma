@@ -10,9 +10,9 @@ import { Badge } from '@/components/ui/badge'
 
 const getIconForTitle = (title: string) => {
     const t = title.toLowerCase()
-    if (t.includes('atualização') || t.includes('novidade') || t.includes('2.0')) return <Zap className="h-5 w-5 text-amber-500" />
-    if (t.includes('manutenção') || t.includes('correção')) return <Wrench className="h-5 w-5 text-blue-500" />
-    if (t.includes('importante') || t.includes('aviso')) return <Star className="h-5 w-5 text-red-500" />
+    if (t.includes('🚀') || t.includes('update') || t.includes('atualização') || t.includes('novidade')) return <Zap className="h-5 w-5 text-amber-500" />
+    if (t.includes('🔧') || t.includes('manutenção') || t.includes('correção')) return <Wrench className="h-5 w-5 text-blue-500" />
+    if (t.includes('⚠️') || t.includes('importante') || t.includes('aviso') || t.includes('alerta')) return <Star className="h-5 w-5 text-red-500" />
     return <Info className="h-5 w-5 text-cyan-500" />
 }
 
@@ -98,7 +98,7 @@ export default function MessagesPage() {
                                             </div>
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-3 flex-wrap">
-                                                    <CardTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 group-hover:to-primary transition-all">
+                                                    <CardTitle className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
                                                         {msg.title}
                                                     </CardTitle>
                                                     {isNew && (
